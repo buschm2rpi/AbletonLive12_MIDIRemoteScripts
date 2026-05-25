@@ -1,21 +1,26 @@
-# Ableton Live 12.0.1 MIDI Remote Scripts 
+# Ableton Live 12.4 MIDI Remote Scripts 
+Unofficial repository for Ableton Live 12.4 MIDI Remote Scripts Python sources by Julien Bayle / Structure Void
 
-Unofficial repository for Ableton Live 12.0.1 MIDI Remote Scripts Python Sources by Julien Bayle / Structure Void
+> ## 📖 Documentation
+>
+> **The unofficial documentation these scripts never had:**
+> ### → [midiremotescripts.structure-void.com](https://midiremotescripts.structure-void.com?utm_source=github&utm_medium=readme&utm_campaign=live12)
+>
+> The full **Live Object Model for Live 9 → 12** side by side, plus guides on the
+> framework itself (ControlSurface lifecycle, components / layers / modes, MIDI
+> message flow, `_Framework` vs `ableton.v3`) and a from-idea-to-script walkthrough.
 
-You can find more informations on this page :
-https://structure-void.com/ableton-live-midi-remote-scripts
-
+---
 
 **AND FOR FRENCH PEOPLE:**
 
-**SI VOUS VOULEZ MAÎTRISER TOTALEMENT ABLETON LIVE SUITE**
+**SI VOUS VOULEZ MAÎTRISER TOTALEMENT ABLETON LIVE SUITE**
 
 **NOUS PROPOSONS DES FORMATIONS FINANÇABLES À MARSEILLE OU EN LIGNE :**
-[ABLETON LIVE SUITE](https://structure-void.com/formations/ableton-live)  ET  [MAX FOR LIVE](https://structure-void.com/formations/max-for-live)
 
+[ABLETON LIVE SUITE](https://structure-void.com/formations/ableton-live)  ET  [MAX FOR LIVE](https://structure-void.com/formations/max-for-live)
 
-## UPDATED on 8th April 2024
-
+## Updated on 25 May 2026 — documentation site added; sources for Live 12.4
 ===> **NO support given, ONLY source files !**
 
 ===> **Don't contact Ableton for support about this repository**
