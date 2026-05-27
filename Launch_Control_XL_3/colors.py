@@ -1,0 +1,42 @@
+# Decompiled with pycdc from Ableton Live 12 (Python 3.11).
+# Some functions may be partial: pycdc cannot fully decompile 3.11 bytecode.
+
+# Source Generated with Decompyle++
+# File: colors.pyc (Python 3.11)
+
+from ableton.v3.base import memoize
+from ableton.v3.control_surface import STANDARD_COLOR_PALETTE, STANDARD_FALLBACK_COLOR_TABLE
+from ableton.v3.control_surface.elements import ColorPart, ComplexColor, SimpleColor
+from ableton.v3.live import liveobj_color_to_value_from_palette, liveobj_valid
+BLINK_CHANNEL = 1
+make_simple_color = (lambda value: SimpleColor(value))()
+
+def make_color_for_liveobj(obj):
+    color = make_simple_color(liveobj_color_to_value_from_palette(obj, palette = STANDARD_COLOR_PALETTE, fallback_table = STANDARD_FALLBACK_COLOR_TABLE))
+    if not liveobj_valid(obj) and color.midi_value:
+        return Rgb.WHITE_HALF
+
+
+def make_animated_color(value, animation_channel):
+    return ComplexColor((ColorPart(value), ColorPart(0, animation_channel)))
+
+
+class Rgb:
+    OFF = SimpleColor(0)
+    WHITE = SimpleColor(3)
+    WHITE_HALF = SimpleColor(1)
+    GREEN = SimpleColor(21)
+    GREEN_HALF = SimpleColor(27)
+    RED = SimpleColor(5)
+    RED_HALF = SimpleColor(7)
+    RED_BLINK = make_animated_color(5, BLINK_CHANNEL)
+    BLUE = SimpleColor(41)
+    BLUE_HALF = SimpleColor(43)
+    ORANGE = SimpleColor(96)
+    ORANGE_HALF = SimpleColor(83)
+    YELLOW = SimpleColor(97)
+    PURPLE = SimpleColor(53)
+    TURQUOISE = SimpleColor(39)
+    DARK_BLUE = SimpleColor(47)
+    LIGHT_BLUE = SimpleColor(92)
+
