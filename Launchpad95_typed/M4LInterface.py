@@ -1,54 +1,62 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Callable, Optional
+
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+
+if TYPE_CHECKING:
+    from typing import Any
+
+_update_listener_type = Callable[[], None]  # type: Any
+
 
 class M4LInterface(ControlSurfaceComponent):
 
-	def __init__(self):
+	def __init__(self) -> None:
 		ControlSurfaceComponent.__init__(self)
 		self._name = 'OSD'
-		self._update_listener = None
-		self._updateML_listener = None
-		self.mode = ' '
+		self._update_listener: Optional[_update_listener_type] = None
+		self._updateML_listener: Optional[_update_listener_type] = None
+		self.mode: str = ' '
 		self.clear()
 
-	def disconnect(self):
+	def disconnect(self) -> None:
 		self._updateM4L_listener = None
 
-	def set_mode(self, mode):
+	def set_mode(self, mode: str) -> None:
 		self.clear()
 		self.mode = mode
 
-	def clear(self):
-		self.info = [' ', ' ']
-		self.attributes = [' ' for _ in range(8)]
-		self.attribute_names = [' ' for _ in range(8)]
+	def clear(self) -> None:
+		self.info: list[str] = [' ', ' ']
+		self.attributes: list[str] = [' ' for _ in range(8)]
+		self.attribute_names: list[str] = [' ' for _ in range(8)]
 
-	def set_update_listener(self, listener):
+	def set_update_listener(self, listener: _update_listener_type) -> None:
 		self._update_listener = listener
 
-	def remove_update_listener(self, listener):
+	def remove_update_listener(self, listener: _update_listener_type) -> None:
 		self._update_listener = None
 
-	def update_has_listener(self):
+	def update_has_listener(self) -> bool:
 		return self._update_listener is not None
 
 	@property
-	def updateML(self):
+	def updateML(self) -> bool:
 		return True
 
-	def set_updateML_listener(self, listener):
+	def set_updateML_listener(self, listener: _update_listener_type) -> None:
 		self._updateML_listener = listener
 
-	def add_updateML_listener(self, listener):
+	def add_updateML_listener(self, listener: _update_listener_type) -> None:
 		self._updateML_listener = listener
-		return
 
-	def remove_updateML_listener(self, listener):
+	def remove_updateML_listener(self, listener: _update_listener_type) -> None:
 		self._updateML_listener = None
-		return
 
-	def updateML_has_listener(self, listener):
+	def updateML_has_listener(self, listener: object) -> bool:
 		return self._updateML_listener is not None
 
-	def update(self, args=None):
+	def update(self, args: object = None) -> None:
 		if self.updateML_has_listener(None):
 			self._updateML_listener()

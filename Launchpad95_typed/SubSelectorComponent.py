@@ -1,8 +1,13 @@
+from __future__ import annotations
+
 import math
+from typing import TYPE_CHECKING, Any, Callable, Optional, Tuple
+
 from _Framework.ModeSelectorComponent import ModeSelectorComponent
 from _Framework.ButtonElement import ButtonElement
 from _Framework.ButtonMatrixElement import ButtonMatrixElement
 from _Framework.SessionComponent import SessionComponent
+
 from .SpecialMixerComponent import SpecialMixerComponent
 from .PreciseButtonSliderElement import (
 	PreciseButtonSliderElement, SLIDER_MODE_VOLUME, SLIDER_MODE_PAN
@@ -10,7 +15,7 @@ from .PreciseButtonSliderElement import (
 from .Settings import Settings
 
 
-def level_to_value(level):
+def level_to_value(level: int | float) -> float:
 	if level >= -18:
 		return (level + 34) / 40.0
 	else:
@@ -22,12 +27,11 @@ VOL_VALUE_MAP = tuple(sorted([0.0] + [level_to_value(level) for level in Setting
 SEND_VALUE_MAP = (0.0, 0.103536, 0.164219, 0.238439, 0.343664, 0.55, 0.774942, 1.0)
 
 
-#SubSelector for Mixer Mode (Allow to select mixing sub modes: Vol, Pan, Snd, Stop, etc)
 class SubSelectorComponent(ModeSelectorComponent):
 
 	""" Class that handles different mixer modes """
 
-	def __init__(self, matrix, side_buttons, session, control_surface):
+	def __init__(self, matrix: ButtonMatrixElement, side_buttons: Tuple[ButtonElement, ...], session: SessionComponent, control_surface: Any) -> None:
 		assert isinstance(matrix, ButtonMatrixElement)
 		assert ((matrix.width() == 8) and (matrix.height() == 8))
 		assert isinstance(side_buttons, tuple)
@@ -38,7 +42,7 @@ class SubSelectorComponent(ModeSelectorComponent):
 		self._session = session
 		self._mixer = SpecialMixerComponent(matrix.width())
 		self._matrix = matrix
-		self._sliders = []
+		self._sliders: list[PreciseButtonSliderElement] = []
 		self._mixer.name = 'Mixer'
 		self._mixer.master_strip().name = 'Master_Channel_strip'
 		self._mixer.selected_strip().name = 'Selected_Channel_strip'
@@ -48,11 +52,11 @@ class SubSelectorComponent(ModeSelectorComponent):
 			self._sliders[-1].name = 'Button_Slider_' + str(column)
 
 		self._side_buttons = side_buttons[4:]
-		self._update_callback = None
+		self._update_callback: Optional[Callable[[], None]] = None
 		self._session.set_mixer(self._mixer)
 		self.set_modes_buttons(side_buttons[:4])
 
-	def disconnect(self):
+	def disconnect(self) -> None:
 		for button in self._modes_buttons:
 			button.remove_value_listener(self._mode_value)
 
@@ -68,10 +72,10 @@ class SubSelectorComponent(ModeSelectorComponent):
 		self._update_callback = None
 		ModeSelectorComponent.disconnect(self)
 
-	def set_update_callback(self, callback):
+	def set_update_callback(self, callback: Callable[[], None]) -> None:
 		self._update_callback = callback
 
-	def set_modes_buttons(self, buttons):
+	def set_modes_buttons(self, buttons: Tuple[ButtonElement, ...] | None) -> None:
 		assert ((buttons is None) or (isinstance(buttons, tuple)))
 		assert (len(buttons) == self.number_of_modes())
 		identify_sender = True
@@ -85,23 +89,23 @@ class SubSelectorComponent(ModeSelectorComponent):
 				self._modes_buttons.append(button)
 				button.add_value_listener(self._mode_value, identify_sender)
 
-	def set_mode(self, mode):
+	def set_mode(self, mode: int) -> None:
 		assert isinstance(mode, int)
 		assert (mode in range(-1, self.number_of_modes()))
 		if ((self._mode_index != mode) or (mode == -1)):
 			self._mode_index = mode
 			self.update()
 
-	def mode(self):
+	def mode(self) -> int:
 		result = 0
 		if self.is_enabled():
 			result = self._mode_index + 1
 		return result
 
-	def number_of_modes(self):
+	def number_of_modes(self) -> int:
 		return 4
 
-	def on_enabled_changed(self):
+	def on_enabled_changed(self) -> None:
 		enabled = self.is_enabled()
 		for index in range(self._matrix.width()):
 			self._sliders[index].set_disabled(not enabled)
@@ -109,7 +113,7 @@ class SubSelectorComponent(ModeSelectorComponent):
 		self._mixer.set_enabled(enabled)
 		self.set_mode(-1)
 
-	def release_controls(self):
+	def release_controls(self) -> None:
 		for track in range(self._matrix.width()):
 			for row in range(self._matrix.height()):
 				self._matrix.get_button(track, row).set_on_off_values(127, "DefaultButton.Disabled")
@@ -127,7 +131,7 @@ class SubSelectorComponent(ModeSelectorComponent):
 		self._mixer.set_global_buttons(None, None, None)
 		self._session.set_stop_all_clips_button(None)
 
-	def update(self):
+	def update(self) -> None:
 		super(SubSelectorComponent, self).update()
 		assert (self._modes_buttons is not None)
 		if self.is_enabled():
@@ -175,7 +179,7 @@ class SubSelectorComponent(ModeSelectorComponent):
 		else:
 			self.release_controls()
 
-	def _setup_mixer_overview(self):
+	def _setup_mixer_overview(self) -> None:
 		stop_buttons = []
 		for track in range(self._matrix.width()):
 			strip = self._mixer.channel_strip(track)
@@ -224,7 +228,7 @@ class SubSelectorComponent(ModeSelectorComponent):
 		self._session.set_stop_all_clips_button(self._side_buttons[0])
 		self._mixer.set_global_buttons(self._side_buttons[3], self._side_buttons[2], self._side_buttons[1])
 
-	def _setup_volume_mode(self):
+	def _setup_volume_mode(self) -> None:
 		for track in range(self._matrix.width()):
 			strip = self._mixer.channel_strip(track)
 			strip.set_default_buttons(None, None, None, None)
@@ -244,7 +248,7 @@ class SubSelectorComponent(ModeSelectorComponent):
 		self._session.set_stop_all_clips_button(None)
 		self._mixer.set_global_buttons(None, None, None)
 
-	def _setup_pan_mode(self):
+	def _setup_pan_mode(self) -> None:
 		for track in range(self._matrix.width()):
 			strip = self._mixer.channel_strip(track)
 			strip.set_default_buttons(None, None, None, None)
@@ -264,7 +268,7 @@ class SubSelectorComponent(ModeSelectorComponent):
 		self._session.set_stop_all_clips_button(None)
 		self._mixer.set_global_buttons(None, None, None)
 
-	def _setup_send1_mode(self):
+	def _setup_send1_mode(self) -> None:
 		for track in range(self._matrix.width()):
 			strip = self._mixer.channel_strip(track)
 			strip.set_default_buttons(None, None, None, None)
@@ -284,7 +288,7 @@ class SubSelectorComponent(ModeSelectorComponent):
 		self._session.set_stop_all_clips_button(None)
 		self._mixer.set_global_buttons(None, None, None)
 
-	def _setup_send2_mode(self):
+	def _setup_send2_mode(self) -> None:
 		for track in range(self._matrix.width()):
 			strip = self._mixer.channel_strip(track)
 			strip.set_default_buttons(None, None, None, None)

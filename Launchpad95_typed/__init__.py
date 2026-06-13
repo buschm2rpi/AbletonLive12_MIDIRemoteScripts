@@ -1,11 +1,20 @@
-from _Framework.Capabilities import CONTROLLER_ID_KEY, PORTS_KEY, NOTES_CC, SCRIPT, SYNC, REMOTE, controller_id, inport, outport
-from .Launchpad import Launchpad
+from __future__ import annotations
 
-def create_instance(c_instance):
+from typing import TYPE_CHECKING, Any
+
+from _Framework.Capabilities import CONTROLLER_ID_KEY, PORTS_KEY, NOTES_CC, SCRIPT, SYNC, REMOTE, controller_id, inport, outport
+
+if TYPE_CHECKING:
+    from .Launchpad import Launchpad
+
+
+def create_instance(c_instance: Any) -> 'Launchpad':
 	""" Creates and returns the Launchpad script """
+	from .Launchpad import Launchpad
 	return Launchpad(c_instance)
 
-def get_capabilities():
+
+def get_capabilities() -> dict[str, Any]:
 	return {
 		CONTROLLER_ID_KEY: controller_id(
 			vendor_id = 4661,
@@ -44,10 +53,10 @@ def get_capabilities():
 		),
 		PORTS_KEY:
 			[
-	            #inport(props=[NOTES_CC, SCRIPT]),
-	            #inport(props=[NOTES_CC, REMOTE]),
-	            #outport(props=[NOTES_CC, SYNC, SCRIPT]),
-	            #outport(props=[REMOTE])
+		        #inport(props=[NOTES_CC, SCRIPT]),
+		        #inport(props=[NOTES_CC, REMOTE]),
+		        #outport(props=[NOTES_CC, SYNC, SCRIPT]),
+		        #outport(props=[REMOTE])
 				inport(props = [NOTES_CC, REMOTE]),
 				inport(props = [NOTES_CC, REMOTE, SCRIPT]),
 				outport(props = [NOTES_CC, SYNC, REMOTE]),

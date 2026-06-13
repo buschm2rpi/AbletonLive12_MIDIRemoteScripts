@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Optional, Tuple
+
+import time
+
 from _Framework.ModeSelectorComponent import ModeSelectorComponent
 from _Framework.ButtonElement import ButtonElement
 from _Framework.ButtonMatrixElement import ButtonMatrixElement
-from _Framework.SessionZoomingComponent import DeprecatedSessionZoomingComponent# noqa
+from _Framework.SessionZoomingComponent import DeprecatedSessionZoomingComponent # noqa
+
 from .DeviceControllerComponent import DeviceControllerComponent
 from .InstrumentControllerComponent import InstrumentControllerComponent
 from .SubSelectorComponent import SubSelectorComponent  # noqa
@@ -11,15 +18,27 @@ from .StepSequencerComponent import StepSequencerComponent
 from .StepSequencerComponent2 import StepSequencerComponent2
 from .NoteRepeatComponent import NoteRepeatComponent
 from .SpecialProSessionComponent import SpecialProSessionComponent
-import time
 from .Settings import Settings
+
+if TYPE_CHECKING:
+	from .M4LInterface import M4LInterface
 
 class MainSelectorComponent(ModeSelectorComponent):
 
 	""" Class that reassigns the button on the launchpad to different functions """
 
 
-	def __init__(self, matrix, top_buttons, side_buttons, config_button, osd, control_surface, note_repeat, c_instance):
+	def __init__(
+		self,
+		matrix: ButtonMatrixElement,
+		top_buttons: Tuple[ButtonElement, ...],
+		side_buttons: Tuple[ButtonElement, ...],
+		config_button: ButtonElement,
+		osd: M4LInterface,
+		control_surface: Any,
+		note_repeat: NoteRepeatComponent,
+		c_instance: Any
+	) -> None:
 		#verify matrix dimentions
 		assert isinstance(matrix, ButtonMatrixElement)
 		assert ((matrix.width() == 8) and (matrix.height() == 8))
@@ -106,7 +125,7 @@ class MainSelectorComponent(ModeSelectorComponent):
 		self._init_session()
 		self._all_buttons = tuple(self._all_buttons)
 
-	def disconnect(self):
+	def disconnect(self) -> None:
 		for button in self._modes_buttons:
 			button.remove_value_listener(self._mode_value)
 
@@ -122,10 +141,10 @@ class MainSelectorComponent(ModeSelectorComponent):
 		self._config_button = None
 		ModeSelectorComponent.disconnect(self)
 
-	def session_component(self):
+	def session_component(self) -> SpecialProSessionComponent:
 		return self._session
 
-	def _update_mode(self):
+	def _update_mode(self) -> None:
 		mode = self._modes_heap[-1][0] #get first value of last _modes_heap tuple. _modes_heap tuple structure is (mode, sender, observer) 
 
 		assert mode in range(self.number_of_modes()) # 8 for this script
@@ -147,15 +166,11 @@ class MainSelectorComponent(ModeSelectorComponent):
 			self._main_mode_index = mode
 			self.update()
 
-	def set_mode(self, mode):
+	def set_mode(self, mode: int) -> None:
 		self._clean_heap()
 		self._modes_heap = [(mode, None, None)]
-		# if ((self.__main_mode_index != mode) or (mode == 3) or True):
-		# 	self._main_mode_index = mode
-		# 	self._update_mode()
-		# 	self.update()
 
-	def _mode_value(self, value, sender):
+	def _mode_value(self, value: int, sender: ButtonElement) -> None:
 		assert len(self._modes_buttons) > 0
 		assert isinstance(value, int)
 		assert sender in self._modes_buttons
@@ -165,22 +180,22 @@ class MainSelectorComponent(ModeSelectorComponent):
 		if new_mode == 0 and self._last_mode_index == 0:
 			if value > 0:
 				self._last_session_mode_button_press = now
-			else: 
+			else:
 				if now - self._last_session_mode_button_press < self._long_press:
 					self._pro_session_on = not self._pro_session_on
 					session_mode_changed = True
-		self._last_mode_index = new_mode			 
+		self._last_mode_index = new_mode
 		super(MainSelectorComponent, self)._mode_value(value, sender)
 		if session_mode_changed:
-			self._update_mode() 
+			self._update_mode()
 
-	def number_of_modes(self):
+	def number_of_modes(self) -> int:
 		return 1 + 3 + 3 + 1
 
-	def on_enabled_changed(self):
+	def on_enabled_changed(self) -> None:
 		self.update()
 
-	def _update_mode_buttons(self):
+	def _update_mode_buttons(self) -> None:
 		self._modes_buttons[0].set_on_off_values("Mode.Session.On","Mode.Session.Off")
 		self._modes_buttons[3].set_on_off_values("Mode.Mixer.On","Mode.Mixer.Off")
 		mode1 = self.getSkinName(Settings.USER_MODES_1[self._sub_mode_list[1]])
@@ -194,22 +209,22 @@ class MainSelectorComponent(ModeSelectorComponent):
 			else:
 				self._modes_buttons[index].turn_off()
 		
-	def getSkinName(self, user2Mode):
-		if user2Mode=="instrument":
+	def getSkinName(self, user2Mode: str) -> str:
+		if user2Mode == "instrument":
 			user2Mode = "Note"
-		if user2Mode=="device":
+		if user2Mode == "device":
 			user2Mode = "Device"
-		if user2Mode=="user 1":
+		if user2Mode == "user 1":
 			user2Mode = "User"
-		if user2Mode=="user 2":
+		if user2Mode == "user 2":
 			user2Mode = "User2"
-		if user2Mode=="drum stepseq":
+		if user2Mode == "drum stepseq":
 			user2Mode = "StepSequencer"
-		if user2Mode=="melodic stepseq":
+		if user2Mode == "melodic stepseq":
 			user2Mode = "StepSequencer2"
 		return user2Mode
-		
-	def channel_for_current_mode(self):
+
+	def channel_for_current_mode(self) -> int:
 		# in this code, midi channels start at 0.
 		# so channels range from 0 - 15.
 		# mapping to 1-16 in the real world
@@ -242,7 +257,7 @@ class MainSelectorComponent(ModeSelectorComponent):
 
 		return new_channel
 	
-	def update(self):
+	def update(self) -> None:
 		assert (self._modes_buttons is not None)
 		if self.is_enabled():
 
@@ -291,8 +306,8 @@ class MainSelectorComponent(ModeSelectorComponent):
 
 			self._session.set_allow_update(True)
 			self._zooming.set_allow_update(True)
-		
-	def _setup_sub_mode(self, mode):
+
+	def _setup_sub_mode(self, mode: str) -> None:
 		as_active = True
 		as_enabled = True
 		if mode == "instrument":
@@ -364,7 +379,7 @@ class MainSelectorComponent(ModeSelectorComponent):
 			self._osd.mode = "User 2"
 			self._osd.update()
 		
-	def _setup_session(self, as_active, as_navigation_enabled):
+	def _setup_session(self, as_active: bool, as_navigation_enabled: bool) -> None:
 		assert isinstance(as_active, type(False))#assert is boolean
 		for button in self._nav_buttons:
 			if as_navigation_enabled:
@@ -458,7 +473,7 @@ class MainSelectorComponent(ModeSelectorComponent):
 		self._session._do_show_highlight()
 		
 		
-	def _setup_instrument_controller(self, as_active):
+	def _setup_instrument_controller(self, as_active: bool) -> None:
 		if self._instrument_controller is not None:
 			if as_active:
 				self._activate_matrix(False) #Disable matrix buttons (clip slots)
@@ -475,7 +490,7 @@ class MainSelectorComponent(ModeSelectorComponent):
 						button.force_next_send()#Flush
 			self._instrument_controller.set_enabled(as_active)#Enable/disable instrument controller
 
-	def _setup_device_controller(self, as_active):
+	def _setup_device_controller(self, as_active: bool) -> None:
 		if self._device_controller is not None:
 			if as_active:
 				self._activate_scene_buttons(True)
@@ -489,8 +504,8 @@ class MainSelectorComponent(ModeSelectorComponent):
 				self._device_controller._is_active = False
 				self._device_controller.set_enabled(False)
 
-	def _setup_user_mode(self, release_matrix=True, release_side_buttons=True, release_nav_buttons=True, drum_rack_mode=True):
-		# user1 -> All True but release_nav_buttons / user2 -> All false 
+	def _setup_user_mode(self, release_matrix: bool = True, release_side_buttons: bool = True, release_nav_buttons: bool = True, drum_rack_mode: bool = True) -> None:
+		# user1 -> All True but release_nav_buttons / user2 -> All false
 		for scene_index in range(8):
 			scene_button = self._side_buttons[scene_index]
 			scene_button.set_on_off_values("DefaultButton.Disabled", "DefaultButton.Disabled")
@@ -512,8 +527,8 @@ class MainSelectorComponent(ModeSelectorComponent):
 		if drum_rack_mode:#User1 enabled
 			self._config_button.send_value(2)#Set LP drum rack layout grid mapping mode
 		self._config_button.send_value(32)#Send enable flashing led config message to LP
-				
-	def _setup_step_sequencer(self, as_active):
+
+	def _setup_step_sequencer(self, as_active: bool) -> None:
 		if(self._stepseq is not None):
 			#if(self._stepseq.is_enabled() != as_active):
 			if as_active:
@@ -525,7 +540,7 @@ class MainSelectorComponent(ModeSelectorComponent):
 			else:
 				self._stepseq.set_enabled(False)
 
-	def _setup_step_sequencer2(self, as_active):
+	def _setup_step_sequencer2(self, as_active: bool) -> None:
 		if(self._stepseq2 is not None):
 			#if(self._stepseq2.is_enabled() != as_active):
 			if as_active:
@@ -537,7 +552,7 @@ class MainSelectorComponent(ModeSelectorComponent):
 			else:
 				self._stepseq2.set_enabled(False)
 
-	def _setup_mixer(self, as_active):
+	def _setup_mixer(self, as_active: bool) -> None:
 		assert isinstance(as_active, type(False))
 		if as_active:
 			self._activate_navigation_buttons(True)
@@ -550,7 +565,7 @@ class MainSelectorComponent(ModeSelectorComponent):
 
 		self._sub_modes.set_enabled(as_active)
 
-	def _init_session(self):
+	def _init_session(self) -> None:
 		#self._session.set_stop_clip_value("Session.StopClip")
 		#self._session.set_stop_clip_triggered_value("Session.ClipTriggeredStop")
 		
@@ -577,29 +592,28 @@ class MainSelectorComponent(ModeSelectorComponent):
 		#self._zooming.set_selected_value("Zooming.Selected")
 		#self._zooming.set_playing_value("Zooming.Playing")	 
 
-	def _activate_navigation_buttons(self, active):
+	def _activate_navigation_buttons(self, active: bool) -> None:
 		for button in self._nav_buttons:
 			button.set_enabled(active)
 
-	def _activate_scene_buttons(self, active):
+	def _activate_scene_buttons(self, active: bool) -> None:
 		for button in self._side_buttons:
 			button.set_enabled(active)
 
-	def _activate_matrix(self, active):
+	def _activate_matrix(self, active: bool) -> None:
 		for scene_index in range(8):
 			for track_index in range(8):
 				self._matrix.get_button(track_index, scene_index).set_enabled(active)
 
-	def _turn_off_scene_buttons(self):
+	def _turn_off_scene_buttons(self) -> None:
 		for side_button in self._side_buttons:
 			side_button.set_on_off_values("DefaultButton.Disabled", "DefaultButton.Disabled")
 			side_button.turn_off()
 
-	def log_message(self, msg):
+	def log_message(self, msg: str) -> None:
 		self._control_surface.log_message(msg)
 
-	# Update the channels of the buttons in the user modes..
-	def _update_control_channels(self):
+	def _update_control_channels(self) -> None:
 		new_channel = self.channel_for_current_mode()
 		for button in self._all_buttons:
 			button.set_channel(new_channel)
