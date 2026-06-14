@@ -1,64 +1,69 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Optional
+import time
+
 from _Framework.DeviceComponent import DeviceComponent
 from _Framework.ButtonElement import ButtonElement
 from .DeviceControllerStripProxy import DeviceControllerStripProxy
-import time
 import Live
 from .Settings import Settings
+
+if TYPE_CHECKING:
+	from _Framework.ButtonMatrixElement import ButtonMatrixElement
 
 
 class DeviceControllerComponent(DeviceComponent):
     __module__ = __name__
     __doc__ = ''
 
-    def __init__(self, control_surface=None, name="device_component",
-        is_enabled=False, matrix=None, side_buttons=None, top_buttons=None):
+    def __init__(self, control_surface: Optional[Any] = None, name: str = "device_component",
+        is_enabled: bool = False, matrix: Optional[Any] = None, side_buttons: Optional[tuple[ButtonElement, ...]] = None, top_buttons: Optional[tuple[ButtonElement, ...]] = None) -> None:
         self._control_surface = control_surface
         self.name = name
-        self._device = None
-        self._matrix = matrix
-        self._selected_track = None
+        self._device: Optional[Any] = None
+        self._matrix: Optional[Any] = matrix
+        self._selected_track: Optional[Any] = None
 
         # Track navigation buttons
-        self._prev_track_button = None
-        self._next_track_button = None
+        self._prev_track_button: Optional[ButtonElement] = None
+        self._next_track_button: Optional[ButtonElement] = None
         # Track Device navigation buttons
-        self._prev_device_button = None
-        self._next_device_button = None
+        self._prev_device_button: Optional[ButtonElement] = None
+        self._next_device_button: Optional[ButtonElement] = None
         # Device Bank navigation buttons
-        self._prev_bank_button = None
-        self._next_bank_button = None
+        self._prev_bank_button: Optional[ButtonElement] = None
+        self._next_bank_button: Optional[ButtonElement] = None
 
         # Precision/stepless logic
-        self._mode_toggle_button = None
-        self._last_mode_toggle_button_press = time.time()
-        self._precision_mode = False
-        self._stepless_mode = Settings.DEVICE_CONTROLLER__STEPLESS_MODE
+        self._mode_toggle_button: Optional[ButtonElement] = None
+        self._last_mode_toggle_button_press: float = time.time()
+        self._precision_mode: Optional[bool] = False
+        self._stepless_mode: bool = Settings.DEVICE_CONTROLLER__STEPLESS_MODE
 
         # Lock logic
-        self._lock_button_slots = [None, None, None, None]
-        self._lock_buttons = [None, None, None, None]
-        self._locked_devices = [None, None, None, None]
-        self._locked_device_index = None
-        self._lock_buttons = [None, None, None, None]
+        self._lock_button_slots: list[Optional[Any]] = [None, None, None, None]
+        self._lock_buttons: list[Optional[ButtonElement]] = [None, None, None, None]
+        self._locked_devices: list[Optional[Any]] = [None, None, None, None]
+        self._locked_device_index: Optional[int] = None
 
-        self._locked_device_bank = [0, 0, 0, 0]
-        self._lock_button_press = [0, 0, 0, 0]
-        self._locked_devices = [None, None, None, None]
+        self._locked_device_bank: list[int] = [0, 0, 0, 0]
+        self._lock_button_press: list[float] = [0, 0, 0, 0]
 
-        self._is_active = False
-        self._force = True
-        self._osd = None
+        self._is_active: bool = False
+        self._force: bool = True
+        self._osd: Optional[Any] = None
 
-        self._control_surface.application().view.add_is_view_visible_listener(
+        self._control_surface.application().view.add_is_view_visible_listener(  # type: ignore[union-attr]
             'Detail', self._on_detail_view_changed)
-        self._control_surface.application().view.add_is_view_visible_listener(
+        self._control_surface.application().view.add_is_view_visible_listener(  # type: ignore[union-attr]
             'Detail/Clip', self._on_views_changed)
 
         # self._remaining_buttons = None UNUSED
         DeviceComponent.__init__(self)
 
         # Sliders
-        self._sliders = []
+        self._sliders: list[Any] = []
         if matrix is not None:
             self.set_matrix(matrix)
         self.set_enabled(is_enabled)
@@ -92,14 +97,14 @@ class DeviceControllerComponent(DeviceComponent):
 
         # selected device listener
         self.song().add_appointed_device_listener(self._on_device_changed)
-        self._control_surface.set_device_component(self)
+        self._control_surface.set_device_component(self)  # type: ignore[union-attr]
 
-    def disconnect(self):
-        self._control_surface.application().view.remove_is_view_visible_listener(
+    def disconnect(self) -> None:
+        self._control_surface.application().view.remove_is_view_visible_listener(  # type: ignore[union-attr]
             'Detail', self._on_detail_view_changed)
-        self._control_surface.application().view.remove_is_view_visible_listener(
+        self._control_surface.application().view.remove_is_view_visible_listener(  # type: ignore[union-attr]
             'Detail/Clip', self._on_views_changed)
-        self._control_surface.set_device_component(None)
+        self._control_surface.set_device_component(None)  # type: ignore[union-attr]
         self.song().remove_appointed_device_listener(self._on_device_changed)
         # LiveDeviceComponent.disconnect(self)
         self._prev_track_button = None

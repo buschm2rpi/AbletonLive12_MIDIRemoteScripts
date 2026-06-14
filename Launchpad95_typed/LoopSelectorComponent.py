@@ -1,35 +1,41 @@
+from __future__ import annotations
+
 import time
+from typing import TYPE_CHECKING, Any, Optional
 
 from _Framework.ButtonElement import ButtonElement
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 
+if TYPE_CHECKING:
+	from Live.Clip import Clip
+
 STEPSEQ_MODE_MULTINOTE = 2
 class LoopSelectorComponent(ControlSurfaceComponent):
 
-    def __init__(self, step_sequencer, buttons, control_surface):
+    def __init__(self, step_sequencer: Any, buttons: tuple[ButtonElement, ...], control_surface: Any) -> None:
         ControlSurfaceComponent.__init__(self)
         self._control_surface = control_surface
         self.set_enabled(False)
         self._step_sequencer = step_sequencer
 
-        self._clip = None  # clip being played
-        self._notes = None  # notes of the clip
-        self._playhead = None  # contains the clip playing position
+        self._clip: Optional[Any] = None  # clip being played
+        self._notes: Optional[Any] = None  # notes of the clip
+        self._playhead: Optional[int] = None  # contains the clip playing position
 
-        self._loop_end = 0
-        self._loop_start = 0
+        self._loop_end: int | float = 0
+        self._loop_start: int | float = 0
 
-        self._blocksize = 8  # number of notes per block -> how many steps are in a button (depending on quantization for note length variable)
-        self._block = 0  # currently selected block (button)
-        self._force = True  # used to force a state change / message send
+        self._blocksize: int = 8  # number of notes per block -> how many steps are in a button (depending on quantization for note length variable)
+        self._block: int = 0  # currently selected block (button)
+        self._force: bool = True  # used to force a state change / message send
 
         # used for loop selection
-        self._last_button_idx = -1
-        self._last_button_time = time.time()
-        self._loop_point1 = -1
-        self._loop_point2 = -1
+        self._last_button_idx: int = -1
+        self._last_button_time: float = time.time()
+        self._loop_point1: int = -1
+        self._loop_point2: int = -1
 
-        self._cache = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        self._cache: list[int | str] = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
                        -1, -1]  # Length=16
 
         self._buttons = buttons
@@ -39,27 +45,27 @@ class LoopSelectorComponent(ControlSurfaceComponent):
             button.add_value_listener(self._loop_button_value,
                                       identify_sender=True)
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         self._top_buttons = None
 
     @property
-    def _number_of_lines_per_note(self):
+    def _number_of_lines_per_note(self) -> int:
         if self._mode == STEPSEQ_MODE_MULTINOTE:
             return self._step_sequencer._number_of_lines_per_note
         else:
             return 1
 
-    def set_clip(self, clip):
+    def set_clip(self, clip: Optional[Any]) -> None:
         self._clip = clip
 
     @property
-    def _mode(self):
+    def _mode(self) -> int:
         return self._step_sequencer._mode
 
-    def set_note_cache(self, note_cache):
+    def set_note_cache(self, note_cache: Any) -> None:
         self._note_cache = note_cache
 
-    def set_playhead(self, playhead, updateBlock=False):
+    def set_playhead(self, playhead: Optional[int], updateBlock: bool = False) -> None:
         self._playhead = playhead
         if updateBlock and self._playhead is not None:
             self._block = int(self._playhead / self._blocksize / self._quantization)
@@ -67,30 +73,30 @@ class LoopSelectorComponent(ControlSurfaceComponent):
         self.update()
 
     @property
-    def _is_mute_shifted(self):
+    def _is_mute_shifted(self) -> bool:
         return self._step_sequencer._is_mute_shifted
 
     @property
-    def _is_velocity_shifted(self):
+    def _is_velocity_shifted(self) -> bool:
         return self._step_sequencer._note_editor._is_velocity_shifted
 
     @property
-    def _quantization(self):
+    def _quantization(self) -> float:
         return self._step_sequencer._quantization
 
     @property
-    def block(self):
+    def block(self) -> int:
         return self._block
 
-    def set_blocksize(self, blocksize):
+    def set_blocksize(self, blocksize: int) -> None:
         self._blocksize = blocksize
 
-    def set_enabled(self, enabled):
+    def set_enabled(self, enabled: bool) -> None:
         self._force = True
         ControlSurfaceComponent.set_enabled(self, enabled)
 
     # Read Live's Clip loop values to LoopSelector Values OK
-    def _get_clip_loop(self):
+    def _get_clip_loop(self) -> None:
         if self._clip is not None:
             self._loop_start = self._clip.loop_start
             self._loop_end = self._clip.loop_end
@@ -99,7 +105,7 @@ class LoopSelectorComponent(ControlSurfaceComponent):
             self._loop_end = 0
 
     # Write LoopSelector Values to Live's Clip loop values (loop and marker) OK
-    def set_clip_loop(self, start, end):
+    def set_clip_loop(self, start: int | float, end: int | float) -> None:
         if self._clip is not None:
             self._loop_end = end
             self._loop_start = start
@@ -116,7 +122,7 @@ class LoopSelectorComponent(ControlSurfaceComponent):
             self.update()
 
     # LoopSelector listener OK
-    def _loop_button_value(self, value, sender):
+    def _loop_button_value(self, value: int, sender: ButtonElement) -> None:
         # Allows to make selection by hold and pressing marker buttons
         # Selects simple page by double click on region button
         # Allows to mute and delete notes in a range
@@ -175,7 +181,7 @@ class LoopSelectorComponent(ControlSurfaceComponent):
                 self._last_button_idx = idx
 
     # Index check for page boundaries scroll OK
-    def can_scroll(self, blocks):
+    def can_scroll(self, blocks: int) -> bool:
         if self._clip is not None:
             if (blocks + self._block) < 0:
                 return False
@@ -189,13 +195,13 @@ class LoopSelectorComponent(ControlSurfaceComponent):
         return False
 
     # Does the actual scroll OK
-    def scroll(self, blocks):
+    def scroll(self, blocks: int) -> None:
         if self._clip is not None and self.can_scroll(blocks):
             self._block = blocks + self._block
             self._step_sequencer.set_page(self._block)
 
     # Iterates refreshing all loop selector buttons (called from playing position listener) OK
-    def update(self):
+    def update(self) -> None:
         if self.is_enabled():
             self._get_clip_loop()  # gets the loop start/end values from the clip -> self._loop_start & self._loop_end
             i = 0
@@ -254,7 +260,7 @@ class LoopSelectorComponent(ControlSurfaceComponent):
             self._force = False
 
     # Make a copy of the current loop to the next N empty blocks OK
-    def _extend_clip_content(self, loop_start, old_loop_end, new_loop_end):
+    def _extend_clip_content(self, loop_start: int | float, old_loop_end: int | float, new_loop_end: int | float) -> None:
         if (self._no_notes_in_range(old_loop_end, new_loop_end, True)):
             clip_looping_length = 0
             if (old_loop_end > 1):
@@ -272,7 +278,7 @@ class LoopSelectorComponent(ControlSurfaceComponent):
                                       old_loop_end)
 
     # Does the note by note copy OK
-    def _copy_notes_in_range(self, start, end, new_start):
+    def _copy_notes_in_range(self, start: int | float, end: int | float, new_start: int | float) -> None:
         new_notes = list(self._note_cache)
         # for i in range()
         for note in new_notes:
@@ -280,28 +286,28 @@ class LoopSelectorComponent(ControlSurfaceComponent):
                 new_notes.append(
                     [note[0], note[1] + new_start - start, note[2], note[3],
                      note[4]])
-        self._clip.select_all_notes()
-        self._clip.replace_selected_notes(tuple(new_notes))
+        self._clip.select_all_notes()  # type: ignore[union-attr]
+        self._clip.replace_selected_notes(tuple(new_notes))  # type: ignore[union-attr]
 
     # Checks if a range is empty OK
-    def _no_notes_in_range(self, start, end, or_after):
+    def _no_notes_in_range(self, start: int | float, end: int | float, or_after: bool) -> bool:
         for note in list(self._note_cache):
             if note[1] >= start and (note[1] < end or or_after):
                 return (False)
         return (True)
 
     # Deletes a block of notes OK
-    def _delete_notes_in_range(self, start, end):
-        new_notes = list()
+    def _delete_notes_in_range(self, start: int | float, end: int | float) -> None:
+        new_notes: list[Any] = list()
         for note in list(self._note_cache):
             if note[1] < start or note[1] >= end:
                 new_notes.append(note)
-        self._clip.select_all_notes()
-        self._clip.replace_selected_notes(tuple(new_notes))
+        self._clip.select_all_notes()  # type: ignore[union-attr]
+        self._clip.replace_selected_notes(tuple(new_notes))  # type: ignore[union-attr]
 
     # Mutes a block of notes OK
-    def _mute_notes_in_range(self, start, end):
-        new_notes = list()
+    def _mute_notes_in_range(self, start: int | float, end: int | float) -> None:
+        new_notes: list[Any] = list()
         for note in list(
             self._note_cache):  # Note -> tuple containing pitch, time, duration, velocity, and mute
             if note[1] < start or note[1] >= end:  # Note time
@@ -309,5 +315,5 @@ class LoopSelectorComponent(ControlSurfaceComponent):
             else:
                 new_notes.append([note[0], note[1], note[2], note[3],
                                   not note[4]])  # Negate mute state
-        self._clip.select_all_notes()
-        self._clip.replace_selected_notes(tuple(new_notes))
+        self._clip.select_all_notes()  # type: ignore[union-attr]
+        self._clip.replace_selected_notes(tuple(new_notes))  # type: ignore[union-attr]

@@ -65,7 +65,7 @@ class MainSelectorComponent(ModeSelectorComponent):
 		self._last_session_mode_button_press = int(round(time.time() * 1000))
 		self._aux_scene = None
 		#Non-Matrix buttons
-		self._all_buttons = []
+		self._all_buttons: list[Any] = []
 		for button in self._side_buttons + self._nav_buttons:
 			self._all_buttons.append(button)
 
@@ -123,25 +123,25 @@ class MainSelectorComponent(ModeSelectorComponent):
 		self._device_controller.set_osd(self._osd)
 
 		self._init_session()
-		self._all_buttons = tuple(self._all_buttons)
+		self._all_buttons = tuple(self._all_buttons)  # type: ignore[assignment]
 
 	def disconnect(self) -> None:
 		for button in self._modes_buttons:
 			button.remove_value_listener(self._mode_value)
 
-		self._session = None
-		self._zooming = None
+		self._session = None  # type: ignore[assignment]
+		self._zooming = None  # type: ignore[assignment]
 		for button in self._all_buttons:
 			button.set_on_off_values("DefaultButton.Disabled", "DefaultButton.Disabled")
 
 		self._config_button.turn_off()
 		self._matrix = None
-		self._side_buttons = None
-		self._nav_buttons = None
+		self._side_buttons = None  # type: ignore[assignment]
+		self._nav_buttons = None  # type: ignore[assignment]
 		self._config_button = None
 		ModeSelectorComponent.disconnect(self)
 
-	def session_component(self) -> SpecialProSessionComponent:
+	def session_component(self) -> SpecialProSessionComponent:  # type: ignore[return-value]
 		return self._session
 
 	def _update_mode(self) -> None:

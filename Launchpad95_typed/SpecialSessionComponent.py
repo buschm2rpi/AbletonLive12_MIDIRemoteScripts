@@ -1,32 +1,39 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Optional
+
 from _Framework.SessionComponent import SessionComponent
 from .ClipSlotMK2 import ClipSlotMK2
 from _Framework.SceneComponent import SceneComponent
+
+if TYPE_CHECKING:
+	from _Framework.ButtonElement import ButtonElement
 
 class SpecialSessionComponent(SessionComponent):
 
 	""" Special session subclass that handles ConfigurableButtons """
 
-	def __init__(self, num_tracks, num_scenes, stop_clip_buttons, control_surface, main_selector):
+	def __init__(self, num_tracks: int, num_scenes: int, stop_clip_buttons: Optional[tuple[ButtonElement, ...]], control_surface: Any, main_selector: Any) -> None:
 		self._stop_clip_buttons = stop_clip_buttons
 		self._control_surface = control_surface
 		self._main_selector = main_selector
-		self._osd = None
+		self._osd: Optional[Any] = None
 		if self._control_surface._lpx or self._control_surface._mk3_rgb or self._control_surface._mk2_rgb:
-			#use custom clip colour coding : blink and pulse for trig and play 
+			#use custom clip colour coding : blink and pulse for trig and play
 			SceneComponent.clip_slot_component_type = ClipSlotMK2
 		SessionComponent.__init__(self, num_tracks = num_tracks, num_scenes = num_scenes, enable_skinning = True, name='Session', is_root=True)
 		if self._control_surface._lpx or self._control_surface._mk3_rgb or self._control_surface._mk2_rgb:
 			from .ColorsMK2 import CLIP_COLOR_TABLE, RGB_COLOR_TABLE
 			self.set_rgb_mode(CLIP_COLOR_TABLE, RGB_COLOR_TABLE)
 
-	def link_with_track_offset(self, track_offset):
+	def link_with_track_offset(self, track_offset: int) -> None:
 		assert (track_offset >= 0)
 		if self._is_linked():
 			self._unlink()
 		self.set_offsets(track_offset, 0)
 		self._link()
 
-	def _update_stop_clips_led(self, index):
+	def _update_stop_clips_led(self, index: int) -> None:
 		if ((self.is_enabled()) and (self._stop_track_clip_buttons is not None) and (index < len(self._stop_track_clip_buttons))):
 			button = self._stop_track_clip_buttons[index]
 			tracks_to_use = self.tracks_to_use()
@@ -42,10 +49,10 @@ class SpecialSessionComponent(SessionComponent):
 			else:
 				button.send_value(4)
 
-	def set_osd(self, osd):
+	def set_osd(self, osd: Any) -> None:
 		self._osd = osd
 
-	def _update_OSD(self):
+	def _update_OSD(self) -> None:
 		if self._osd is not None:
 			self._osd.mode = "Session"
 			for i in range(self._num_tracks):
@@ -68,21 +75,21 @@ class SpecialSessionComponent(SessionComponent):
 			self._osd.info[1] = " "
 			self._osd.update()
 
-	def unlink(self):
+	def unlink(self) -> None:
 		if self._is_linked():
 			self._unlink()
 
-	def update(self):
+	def update(self) -> None:
 		SessionComponent.update(self)
 		if self._main_selector._main_mode_index == 0:
 			self._update_OSD()
 
-	def set_enabled(self, enabled):
+	def set_enabled(self, enabled: bool) -> None:
 		SessionComponent.set_enabled(self, enabled)
 		if self._main_selector._main_mode_index == 0:
 			self._update_OSD()
 
-	def _reassign_tracks(self):
+	def _reassign_tracks(self) -> None:
 		SessionComponent._reassign_tracks(self)
 		if self._main_selector._main_mode_index == 0:
 			self._update_OSD()

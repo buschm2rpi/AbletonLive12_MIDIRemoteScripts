@@ -1,3 +1,9 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Optional
+from random import randrange
+import time
+
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Framework.ButtonMatrixElement import ButtonMatrixElement
 from .StepSequencerComponent import StepSequencerComponent, ButtonElement, \
@@ -6,8 +12,6 @@ from .LoopSelectorComponent import LoopSelectorComponent
 from .NoteSelectorComponent import NoteSelectorComponent
 from .ScaleComponent import MUSICAL_MODES, KEY_NAMES
 from .TrackControllerComponent import TrackControllerComponent
-from random import randrange
-import time
 
 STEPSEQ_MODE_NOTES = 1
 STEPSEQ_MODE_NOTES_OCTAVES = 2
@@ -25,84 +29,80 @@ LONG_BUTTON_PRESS = 1.0
 
 class MelodicNoteEditorComponent(ControlSurfaceComponent):
 
-	def __init__(self, step_sequencer, matrix, side_buttons, control_surface):
+	def __init__(self, step_sequencer: Any, matrix: Any, side_buttons: tuple[ButtonElement, ...], control_surface: Any) -> None:
 		ControlSurfaceComponent.__init__(self)
 		self._control_surface = control_surface
 		self.set_enabled(False)
 
 		self._step_sequencer = step_sequencer
 
-		self._clip = None
-		self._playhead = None
+		self._clip: Optional[Any] = None
+		self._playhead: Optional[int] = None
 
 		self._matrix = matrix
 		self._side_buttons = side_buttons
 
-		# buttons
-		self._matrix = None
-
 		# matrix
 		self.set_matrix(matrix)
-		self._grid_buffer = [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], 
-		[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], 
+		self._grid_buffer: list[list[int]] = [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0],
+		[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0],
 		[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]]
-		self._grid_back_buffer = [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], 
-		[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], 
+		self._grid_back_buffer: list[list[int]] = [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0],
+		[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0],
 		[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]]
 
 		# clip
-		self._clip = None
-		self._note_cache = []
-		self._force_update = True
+		self._note_cache: list[Any] = []
+		self._force_update: bool = True
 		self._init_data()
 
-		self._velocity_map = [0, 30, 60, 80, 100, 115, 127]
-		self._length_map = [1, 2, 3, 4, 8, 16, 32]
+		self._velocity_map: list[int] = [0, 30, 60, 80, 100, 115, 127]
+		self._length_map: list[int] = [1, 2, 3, 4, 8, 16, 32]
 
 		# time
 		self._playhead = 0
-		self._page = 0
+		self._page: int = 0
 
 		# notes
-		self._key_indexes = [36, 37, 38, 39, 40, 41, 42, 43]
-		self._key_index_is_in_scale = [True, False, True, True, False, True, False, True]
-		self._key_index_is_root_note = [True, False, False, False, False, False, False, False]
-		self._is_monophonic = False
+		self._key_indexes: list[int] = [36, 37, 38, 39, 40, 41, 42, 43]
+		self._key_index_is_in_scale: list[bool] = [True, False, True, True, False, True, False, True]
+		self._key_index_is_root_note: list[bool] = [True, False, False, False, False, False, False, False]
+		self._is_monophonic: bool = False
 
 		# quantization
-		self._quantization = 16
+		self._quantization: int = 16
 
 		# MODE
-		self._mode = STEPSEQ_MODE_NOTES
+		self._mode: int = STEPSEQ_MODE_NOTES
 
 		# buttons
-		self._random_button = None
+		self._random_button: Optional[ButtonElement] = None
 		self.set_random_button(self._side_buttons[3])
 
-		self._mode_notes_lengths_button = None
+		self._mode_notes_lengths_button: Optional[ButtonElement] = None
 		self.set_mode_notes_lengths_button(self._side_buttons[4])
-		self._is_notes_lengths_shifted = False
-		self._last_notes_lengths_button_press = time.time()
+		self._is_notes_lengths_shifted: bool = False
+		self._last_notes_lengths_button_press: float = time.time()
 
-		self._mode_notes_octaves_button = None
+		self._mode_notes_octaves_button: Optional[ButtonElement] = None
 		self.set_mode_notes_octaves_button(self._side_buttons[5])
-		self._is_octave_shifted = False
-		self._last_notes_octaves_button_press = time.time()
+		self._is_octave_shifted: bool = False
+		self._last_notes_octaves_button_press: float = time.time()
 
-		self._mode_notes_velocities_button = None
+		self._mode_notes_velocities_button: Optional[ButtonElement] = None
 		self.set_mode_notes_velocities_button(self._side_buttons[6])
-		self._is_notes_velocity_shifted = False
-		self._last_notes_velocity_button_press = time.time()
+		self._is_notes_velocity_shifted: bool = False
+		self._last_notes_velocity_button_press: float = time.time()
 
-		self._mode_notes_pitches_button = None
+		self._mode_notes_pitches_button: Optional[ButtonElement] = None
 		self.set_mode_notes_pitches_button(self._side_buttons[7])
-		self._is_notes_pitches_shifted = False
-		self._last_notes_pitches_button_press = time.time()
+		self._is_notes_pitches_shifted: bool = False
+		self._last_notes_pitches_button_press: float = time.time()
 
-		self._is_velocity_shifted = False
-		self._is_mute_shifted = False
+		self._is_velocity_shifted: bool = False
+		self._is_mute_shifted: bool = False
 
-	def disconnect(self):
+	def disconnect(self) -> None:
 		self._step_sequencer = None
 		self._matrix = None
 		self._mode_notes_lengths_button = None

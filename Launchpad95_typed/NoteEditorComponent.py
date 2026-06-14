@@ -1,144 +1,152 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Optional
+import time
+
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Framework.ButtonElement import ButtonElement
-import time
+
+if TYPE_CHECKING:
+	from _Framework.ButtonMatrixElement import ButtonMatrixElement
+	from Live.Clip import Clip
 
 class NoteEditorComponent(ControlSurfaceComponent):
 
-	def __init__(self, stepsequencer = None, matrix = None, control_surface = None):
+	def __init__(self, stepsequencer: Optional[Any] = None, matrix: Optional[Any] = None, control_surface: Optional[Any] = None) -> None:
 		ControlSurfaceComponent.__init__(self)
 		self.set_enabled(False)
 		self._stepsequencer = stepsequencer
 		self._control_surface = control_surface
-		self._clip = None
-		self._note_cache = None
-		self._playhead = None
+		self._clip: Optional[Any] = None
+		self._note_cache: Optional[Any] = None
+		self._playhead: Optional[int] = None
 
 		# playback step indicator
-		self.display_metronome = True
-		self.metronome_color = "StepSequencer.NoteEditor.Metronome"
-		
+		self.display_metronome: bool = True
+		self.metronome_color: str = "StepSequencer.NoteEditor.Metronome"
+
 		# playback page indicator
-		self._current_page = -1
+		self._current_page: int = -1
 
 		# Velocity color map. this must remain of length 3. WHY???
-		self.velocity_map = [20, 50, 80, 105, 127]
-		self.velocity_color_map = [	"StepSequencer.NoteEditor.Velocity0", "StepSequencer.NoteEditor.Velocity1", "StepSequencer.NoteEditor.Velocity2", "StepSequencer.NoteEditor.Velocity3", "StepSequencer.NoteEditor.Velocity4"]
-		
+		self.velocity_map: list[int] = [20, 50, 80, 105, 127]
+		self.velocity_color_map: list[str] = [	"StepSequencer.NoteEditor.Velocity0", "StepSequencer.NoteEditor.Velocity1", "StepSequencer.NoteEditor.Velocity2", "StepSequencer.NoteEditor.Velocity3", "StepSequencer.NoteEditor.Velocity4"]
+
 		# other colors
-		self.muted_note_color = "StepSequencer.NoteEditor.Muted"
-		self.playing_note_color = "StepSequencer.NoteEditor.Playing"
+		self.muted_note_color: str = "StepSequencer.NoteEditor.Muted"
+		self.playing_note_color: str = "StepSequencer.NoteEditor.Playing"
 
 		#hold button for 500 ms
-		self.long_button_press = 0.500
+		self.long_button_press: float = 0.500
 
 		# buttons
-		self._matrix = None
-		self._mute_shift_button = None
-		self._velocity_button = None
-		self._velocity_shift_button = None
+		self._matrix: Optional[Any] = None
+		self._mute_shift_button: Optional[ButtonElement] = None
+		self._velocity_button: Optional[ButtonElement] = None
+		self._velocity_shift_button: Optional[ButtonElement] = None
 
 		# displayed page
-		self._page = 0
-		self._display_page = False
-		self._display_page_time = time.time()
+		self._page: int = 0
+		self._display_page: bool = False
+		self._display_page_time: float = time.time()
 
 		# notes
-		self._key_indexes = [36, 37, 38, 39, 40, 41, 42, 43]
-		self._key_index_is_in_scale = [True, False, True, True, False, True, False, True]
-		self._key_index_is_root_note = [True, False, False, False, False, False, False, False]
-		self._number_of_lines_per_note = 1
+		self._key_indexes: list[int] = [36, 37, 38, 39, 40, 41, 42, 43]
+		self._key_index_is_in_scale: list[bool] = [True, False, True, True, False, True, False, True]
+		self._key_index_is_root_note: list[bool] = [True, False, False, False, False, False, False, False]
+		self._number_of_lines_per_note: int = 1
 
 		# clip
-		self._force_update = True
+		self._force_update: bool = True
 
 		# quantization
-		self._quantization = 16
+		self._quantization: int = 16
 
 		# velocity
-		self._velocity_index = 3
-		self._velocity = self.velocity_map[self._velocity_index]
-		self._is_velocity_shifted = False
-		self._velocity_notes_pressed = 0
-		self._velocity_last_press = time.time()
+		self._velocity_index: int = 3
+		self._velocity: int = self.velocity_map[self._velocity_index]
+		self._is_velocity_shifted: bool = False
+		self._velocity_notes_pressed: int = 0
+		self._velocity_last_press: float = time.time()
 
 		# modes
-		self._is_mute_shifted = False
-		self._is_mutlinote = False
-				
+		self._is_mute_shifted: bool = False
+		self._is_mutlinote: bool = False
+
 		# matrix
 		if matrix is not None:
 			self.set_matrix(matrix)
 
-	def disconnect(self):
+	def disconnect(self) -> None:
 		self._matrix = None
 		self._velocity_button = None
 		self._clip = None
-			
+
 	@property
-	def is_multinote(self):
+	def is_multinote(self) -> bool:
 		return self._is_mutlinote
 
-	def set_multinote(self, is_mutlinote, number_of_lines_per_note):
+	def set_multinote(self, is_mutlinote: bool, number_of_lines_per_note: int) -> None:
 		self._is_mutlinote = is_mutlinote
 		self._number_of_lines_per_note = number_of_lines_per_note
 
 	@property
-	def quantization(self):
+	def quantization(self) -> int:
 		return self._quantization
 
-	def set_quantization(self, quantization):
+	def set_quantization(self, quantization: int) -> None:
 		self._quantization = quantization
 
-	def set_scale(self, scale):
+	def set_scale(self, scale: Any) -> None:
 		self._scale = scale
 
-	def set_diatonic(self, diatonic):
+	def set_diatonic(self, diatonic: bool) -> None:
 		self._diatonic = diatonic
 
 	@property
-	def key_indexes(self):
+	def key_indexes(self) -> list[int]:
 		return self._key_indexes
 
-	def set_key_indexes(self, key_indexes):
+	def set_key_indexes(self, key_indexes: list[int]) -> None:
 		self._key_indexes = key_indexes
 
-	def set_key_index_is_in_scale(self, key_index_is_in_scale):
+	def set_key_index_is_in_scale(self, key_index_is_in_scale: list[bool]) -> None:
 		self._key_index_is_in_scale = key_index_is_in_scale
 
-	def set_key_index_is_root_note(self, key_index_is_root_note):
+	def set_key_index_is_root_note(self, key_index_is_root_note: list[bool]) -> None:
 		self._key_index_is_root_note = key_index_is_root_note
 
 	@property
-	def height(self):
+	def height(self) -> int:
 		return self._height
 
-	def set_height(self, height):
+	def set_height(self, height: int) -> None:
 		self._height = height
 
 	@property
-	def width(self):
+	def width(self) -> int:
 		return self._width
 
 	@property
-	def number_of_lines_per_note(self):
+	def number_of_lines_per_note(self) -> int:
 		if self.is_multinote:
 			return self._number_of_lines_per_note
 		else:
 			return self.height
 
-	def set_page(self, page):
+	def set_page(self, page: int) -> None:
 		if self.is_multinote:
 			self._page = page
 		else:
 			self._page = int(page / 4)  # 4 lines per note (32 steps seq)
 
-	def set_clip(self, clip):
+	def set_clip(self, clip: Optional[Any]) -> None:
 		self._clip = clip
 
-	def set_note_cache(self, note_cache):
+	def set_note_cache(self, note_cache: Any) -> None:
 		self._note_cache = note_cache
 
-	def set_playhead(self, playhead): # Playing cursor
+	def set_playhead(self, playhead: Optional[int]) -> None: # Playing cursor
 		self._playhead = playhead
 		self._update_matrix()
 

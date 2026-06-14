@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Optional
+import time
+
 import Live
 
 from .LoopSelectorComponent import LoopSelectorComponent
@@ -8,7 +13,6 @@ from _Framework.Util import find_if
 # Python 3: map() returns an iterator (replaces itertools.imap from Python 2)
 from .NoteEditorComponent import NoteEditorComponent
 from .TrackControllerComponent import TrackControllerComponent
-import time
 from .ScaleComponent import ScaleComponent, MUSICAL_MODES, KEY_NAMES
 from .Settings import Settings
 # quantization button colours. this must remain of length 4.
@@ -26,37 +30,37 @@ LONG_BUTTON_PRESS = 1.0
 
 class StepSequencerComponent(CompoundComponent):
 
-    def __init__(self, matrix, side_buttons, top_buttons, control_surface):
-        self._osd = None
+    def __init__(self, matrix: Any, side_buttons: tuple[ButtonElement, ...], top_buttons: tuple[ButtonElement, ...], control_surface: Any) -> None:
+        self._osd: Optional[Any] = None
         super(StepSequencerComponent, self).__init__()
         self._control_surface = control_surface
-        self._number_of_lines_per_note = 1
-        self.QUANTIZATION_COLOR_MAP = ["StepSequencer.Quantization.One", "StepSequencer.Quantization.Two", "StepSequencer.Quantization.Three", "StepSequencer.Quantization.Four"]
-        self.QUANTIZATION_COLOR_MAP_LOW = ["StepSequencer.QuantizationLow.One", "StepSequencer.QuantizationLow.Two", "StepSequencer.QuantizationLow.Three", "StepSequencer.QuantizationLow.Four"]
-        self._name = "drum step sequencer"
+        self._number_of_lines_per_note: int = 1
+        self.QUANTIZATION_COLOR_MAP: list[str] = ["StepSequencer.Quantization.One", "StepSequencer.Quantization.Two", "StepSequencer.Quantization.Three", "StepSequencer.Quantization.Four"]
+        self.QUANTIZATION_COLOR_MAP_LOW: list[str] = ["StepSequencer.QuantizationLow.One", "StepSequencer.QuantizationLow.Two", "StepSequencer.QuantizationLow.Three", "StepSequencer.QuantizationLow.Four"]
+        self._name: str = "drum step sequencer"
         # clip
-        self._clip = None
-        self._clip_slot = None
-        self._note_cache = []
-        self._playhead = 0
-        self._new_clip_pages = 4
+        self._clip: Optional[Any] = None
+        self._clip_slot: Optional[Any] = None
+        self._note_cache: list[Any] = []
+        self._playhead: int = 0
+        self._new_clip_pages: int = 4
         # mode
-        self._mode = -1
-        self._mode_backup = self._mode
+        self._mode: int = -1
+        self._mode_backup: int = self._mode
         # buttons
-        self._height = matrix.height()
-        self._width = matrix.width()
+        self._height: int = matrix.height()
+        self._width: int = matrix.width()
         self._matrix = matrix
-        self._top_buttons = top_buttons
-        self._side_buttons = side_buttons
-        self._left_button = None
-        self._right_button = None
+        self._top_buttons: Optional[tuple[ButtonElement, ...]] = top_buttons
+        self._side_buttons: Optional[tuple[ButtonElement, ...]] = side_buttons
+        self._left_button: Optional[ButtonElement] = None
+        self._right_button: Optional[ButtonElement] = None
         # scale
-        self._root_note = 36
-        self._chromatic_scale = []
-        self._diatonic_scale = []
-        
-        self._beat = 0
+        self._root_note: int = 36
+        self._chromatic_scale: list[int] = []
+        self._diatonic_scale: list[int] = []
+
+        self._beat: int = 0
         # setup
         self._set_loop_selector()
         self._set_note_editor()
@@ -71,7 +75,7 @@ class StepSequencerComponent(CompoundComponent):
         # TODO: maybe clean this... this should be done on enable.
         # self.on_clip_slot_changed()
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         self._clip = None
 
         self._lock_button = None

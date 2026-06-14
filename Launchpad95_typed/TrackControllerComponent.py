@@ -1,7 +1,11 @@
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Optional
+import time
+
 from _Framework.MixerComponent import MixerComponent
 from _Framework.ButtonElement import ButtonElement
-import time
 
 
 class TrackControllerComponent(MixerComponent):
@@ -13,36 +17,36 @@ class TrackControllerComponent(MixerComponent):
 			enable/disable session_record
 	"""
 
-	def __init__(self, control_surface = None, implicit_arm = False, skin_name = "Session", enabled = False):
-		self._prev_track_button = None
-		self._next_track_button = None
-		self._prev_scene_button = None
-		self._next_scene_button = None
-		self._start_stop_button = None
-		self._lock_button = None
-		self._locked_to_track = False
-		self._session_record_button = None
-		self._mute_button = None
-		self._solo_button = None
-		self._undo_button = None
-		self._arm_button = None
-		self._selected_track = None
+	def __init__(self, control_surface: Optional[Any] = None, implicit_arm: bool = False, skin_name: str = "Session", enabled: bool = False) -> None:
+		self._prev_track_button: Optional[ButtonElement] = None
+		self._next_track_button: Optional[ButtonElement] = None
+		self._prev_scene_button: Optional[ButtonElement] = None
+		self._next_scene_button: Optional[ButtonElement] = None
+		self._start_stop_button: Optional[ButtonElement] = None
+		self._lock_button: Optional[ButtonElement] = None
+		self._locked_to_track: bool = False
+		self._session_record_button: Optional[ButtonElement] = None
+		self._mute_button: Optional[ButtonElement] = None
+		self._solo_button: Optional[ButtonElement] = None
+		self._undo_button: Optional[ButtonElement] = None
+		self._arm_button: Optional[ButtonElement] = None
+		self._selected_track: Optional[Any] = None
 		self._control_surface = control_surface
-		self._implicit_arm = implicit_arm
-		self._skin_name = skin_name
+		self._implicit_arm: bool = implicit_arm
+		self._skin_name: str = skin_name
 		MixerComponent.__init__(self, 1)
 		self.set_enabled(enabled)
 
 		now = int(round(time.time() * 1000))
-		self._last_arm_button_press = now
-		self._last_session_record_button_press = now
-		self._last_undo_button_press = now
-		self._last_solo_button_press = now
-		self._last_start_stop_button_press = now
-		self._long_press = 500
-		
+		self._last_arm_button_press: int = now
+		self._last_session_record_button_press: int = now
+		self._last_undo_button_press: int = now
+		self._last_solo_button_press: int = now
+		self._last_start_stop_button_press: int = now
+		self._long_press: int = 500
 
-	def disconnect(self):
+
+	def disconnect(self) -> None:
 		self.set_prev_scene_button(None)
 		self.set_next_scene_button(None)
 		self.set_prev_track_button(None)
@@ -56,7 +60,7 @@ class TrackControllerComponent(MixerComponent):
 
 		MixerComponent.disconnect(self)
 
-	def set_enabled(self, enabled):
+	def set_enabled(self, enabled: bool) -> None:
 		if self.is_enabled and not enabled:
 			# disable implicit arm while leaving.
 			if self._implicit_arm:
@@ -70,7 +74,7 @@ class TrackControllerComponent(MixerComponent):
 	#		view.selected_scene = self._scene
 
 
-	def set_prev_scene_button(self, prev_scene=None):
+	def set_prev_scene_button(self, prev_scene: Optional[ButtonElement] = None) -> None:
 		assert isinstance(prev_scene, (ButtonElement, type(None)))
 		if self._prev_scene_button is not None:
 			self._prev_scene_button.remove_value_listener(self._prev_scene_value)
@@ -79,7 +83,7 @@ class TrackControllerComponent(MixerComponent):
 			self._prev_scene_button.add_value_listener(self._prev_scene_value, identify_sender=True)
 			self._prev_scene_button.turn_off()
 
-	def set_next_scene_button(self, next_scene=None):
+	def set_next_scene_button(self, next_scene: Optional[ButtonElement] = None) -> None:
 		assert isinstance(next_scene, (ButtonElement, type(None)))
 		if self._next_scene_button is not None:
 			self._next_scene_button.remove_value_listener(self._next_scene_value)
@@ -88,7 +92,7 @@ class TrackControllerComponent(MixerComponent):
 			self._next_scene_button.add_value_listener(self._next_scene_value, identify_sender=True)
 			self._next_scene_button.turn_off()
 
-	def set_session_record_button(self, session_record=None):
+	def set_session_record_button(self, session_record: Optional[ButtonElement] = None) -> None:
 		assert isinstance(session_record, (ButtonElement, type(None)))
 		if self._session_record_button is not None:
 			self._session_record_button.remove_value_listener(self._session_record_value)
@@ -97,7 +101,7 @@ class TrackControllerComponent(MixerComponent):
 			self._session_record_button.add_value_listener(self._session_record_value)
 			self._session_record_button.turn_off()
 
-	def set_lock_button(self, button=None):
+	def set_lock_button(self, button: Optional[ButtonElement] = None) -> None:
 		assert isinstance(button, (ButtonElement, type(None)))
 		if self._lock_button is not None:
 			self._lock_button.remove_value_listener(self._lock_value)
@@ -107,7 +111,7 @@ class TrackControllerComponent(MixerComponent):
 			self._lock_button.turn_off()
 
 
-	def set_start_stop_button(self, button=None):
+	def set_start_stop_button(self, button: Optional[ButtonElement] = None) -> None:
 		assert isinstance(button, (ButtonElement, type(None)))
 		if self._start_stop_button is not None:
 			self._start_stop_button.remove_value_listener(self._start_stop_value)
@@ -116,7 +120,7 @@ class TrackControllerComponent(MixerComponent):
 			self._start_stop_button.add_value_listener(self._start_stop_value)
 			self._start_stop_button.turn_off()
 
-	def set_mute_button(self, mute=None):
+	def set_mute_button(self, mute: Optional[ButtonElement] = None) -> None:
 		assert isinstance(mute, (ButtonElement, type(None)))
 		if self._mute_button is not None:
 			self._mute_button.remove_value_listener(self._mute_value)
@@ -125,7 +129,7 @@ class TrackControllerComponent(MixerComponent):
 			self._mute_button.add_value_listener(self._mute_value)
 			self._mute_button.turn_off()
 
-	def set_solo_button(self, solo=None):
+	def set_solo_button(self, solo: Optional[ButtonElement] = None) -> None:
 		assert isinstance(solo, (ButtonElement, type(None)))
 		if self._solo_button is not None:
 			self._solo_button.remove_value_listener(self._solo_value)
@@ -134,7 +138,7 @@ class TrackControllerComponent(MixerComponent):
 			self._solo_button.add_value_listener(self._solo_value)
 			self._solo_button.turn_off()
 
-	def set_arm_button(self, arm=None):
+	def set_arm_button(self, arm: Optional[ButtonElement] = None) -> None:
 		assert isinstance(arm, (ButtonElement, type(None)))
 		if self._arm_button is not None:
 			self._arm_button.remove_value_listener(self._arm_value)
@@ -143,7 +147,7 @@ class TrackControllerComponent(MixerComponent):
 			self._arm_button.add_value_listener(self._arm_value)
 			self._arm_button.turn_off()
 
-	def set_undo_button(self, button=None):
+	def set_undo_button(self, button: Optional[ButtonElement] = None) -> None:
 		assert isinstance(button, (ButtonElement, type(None)))
 		if self._undo_button is not None:
 			self._undo_button.remove_value_listener(self._undo_value)

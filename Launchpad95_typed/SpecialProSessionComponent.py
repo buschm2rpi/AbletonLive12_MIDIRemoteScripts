@@ -1,5 +1,10 @@
 # imported from https://github.com/poltow/Launchpad97
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Optional
+import time
+
 import Live
 #import traceback
 from .ClipSlotMK2 import ClipSlotMK2
@@ -10,7 +15,6 @@ from _Framework.ClipSlotComponent import ClipSlotComponent
 from _Framework import Task
 from _Framework.Util import in_range
 from _Framework.SubjectSlot import subject_slot_group
-import time
 from .SpecialProSessionRecordingComponent import SpecialProSessionRecordingComponent
 from .SpecialSessionComponent import SpecialSessionComponent
 from .TargetTrackComponent import TargetTrackComponent
@@ -454,85 +458,85 @@ class SpecialProSessionComponent(SpecialSessionComponent):
 	scene_component_type = SpecialSceneComponent
 	""" Special session subclass that handles ConfigurableButtons """
 
-	def __init__(self, num_tracks, num_scenes, stop_clip_buttons, side_buttons, control_surface, main_selector, livesong = None):
-		self._pro_mode_on = False
+	def __init__(self, num_tracks: int, num_scenes: int, stop_clip_buttons: Optional[tuple[ButtonElement, ...]], side_buttons: tuple[ButtonElement, ...], control_surface: Any, main_selector: Any, livesong: Optional[Any] = None) -> None:
+		self._pro_mode_on: bool = False
 		if control_surface._mk2_rgb:
-			#use custom clip colour coding : blink and pulse for trig and play 
+			#use custom clip colour coding : blink and pulse for trig and play
 			SceneComponent.clip_slot_component_type = ClipSlotMK2
 		SpecialSessionComponent.__init__(self, num_tracks = num_tracks, num_scenes = num_scenes, stop_clip_buttons = stop_clip_buttons, control_surface= control_surface, main_selector= main_selector)
-		
+
 		self._side_buttons = side_buttons
-		self._osd = None
+		self._osd: Optional[Any] = None
 		self._song = livesong
-		
-		self._slot_copy_buffer = None
-		
-		self._shift_button = None
-		self._click_button = None
-		self._undo_button = None
-		self._delete_button = None
-		self._duplicate_button = None
-		self._double_button = None
-		self._quantize_button = None
-		self._record_button = None
-		
-		self._shift_pressed = False
-		self._delete_pressed = False
-		self._duplicate_pressed = False
-		self._double_pressed = False
-		self._quantize_pressed = False
-		self._click_pressed = False
-		self._record_pressed = False
-		self._record_mode_on = False
-		self._is_arming = False
-		self._armed_track_count=0
-		
-		self._last_undo_time = time.time()
-		self._last_shift_time = time.time()
-		self._last_quantize_time = time.time()
-		self._last_click_time = time.time()
-		self._last_fixed_time = time.time()
-		self._last_solo_time = time.time()
-		self._last_mute_time = time.time()
-		self._last_record_time = time.time()
-				
+
+		self._slot_copy_buffer: Optional[Any] = None
+
+		self._shift_button: Optional[ButtonElement] = None
+		self._click_button: Optional[ButtonElement] = None
+		self._undo_button: Optional[ButtonElement] = None
+		self._delete_button: Optional[ButtonElement] = None
+		self._duplicate_button: Optional[ButtonElement] = None
+		self._double_button: Optional[ButtonElement] = None
+		self._quantize_button: Optional[ButtonElement] = None
+		self._record_button: Optional[ButtonElement] = None
+
+		self._shift_pressed: bool = False
+		self._delete_pressed: bool = False
+		self._duplicate_pressed: bool = False
+		self._double_pressed: bool = False
+		self._quantize_pressed: bool = False
+		self._click_pressed: bool = False
+		self._record_pressed: bool = False
+		self._record_mode_on: bool = False
+		self._is_arming: bool = False
+		self._armed_track_count: int = 0
+
+		self._last_undo_time: float = time.time()
+		self._last_shift_time: float = time.time()
+		self._last_quantize_time: float = time.time()
+		self._last_click_time: float = time.time()
+		self._last_fixed_time: float = time.time()
+		self._last_solo_time: float = time.time()
+		self._last_mute_time: float = time.time()
+		self._last_record_time: float = time.time()
+
 		self._end_undo_step_task = self._tasks.add(Task.sequence(Task.wait(1.5), Task.run(self.song().end_undo_step)))
 		self._end_undo_step_task.kill()
-		
+
 		self._launch_quantization = self._get_song().clip_trigger_quantization
-		self._launch_quantization_on = self._launch_quantization !=_Q.q_no_q
-		self._song.add_clip_trigger_quantization_listener(self._on_clip_trigger_quantization_changed_in_live)
-		
+		self._launch_quantization_on: bool = self._launch_quantization !=_Q.q_no_q
+		self._song.add_clip_trigger_quantization_listener(self._on_clip_trigger_quantization_changed_in_live)  # type: ignore[union-attr]
+
 		if(self._get_song().midi_recording_quantization== Rec_Q.rec_q_no_q):
 			self._record_quantization = Rec_Q.rec_q_sixtenth
 		else:
 			self._record_quantization = self._get_song().midi_recording_quantization
-			
-			
-		self._record_quantization_on = self._get_song().midi_recording_quantization != Rec_Q.rec_q_no_q
-			
-			
-		self._song.add_midi_recording_quantization_listener(self._on_record_quantization_changed_in_live)
-		
+
+
+		self._record_quantization_on: bool = self._get_song().midi_recording_quantization != Rec_Q.rec_q_no_q
+
+
+		self._song.add_midi_recording_quantization_listener(self._on_record_quantization_changed_in_live)  # type: ignore[union-attr]
+
 		self.song().add_session_record_listener(self._on_session_record_changed_in_live)
-		
-		self._fixed_length = 1
-		self._fixed_length_on = False
-		
-		self._tap_color_index = 0
-		self._shift_color_index = 0
-		
-		self._tap_button = None
-		self._song.add_metronome_listener(self._on_metronome_status_changed)
-		
+
+		self._fixed_length: int = 1
+		self._fixed_length_on: bool = False
+
+		self._tap_color_index: int = 0
+		self._shift_color_index: int = 0
+
+		self._tap_button: Optional[ButtonElement] = None
+		self._song.add_metronome_listener(self._on_metronome_status_changed)  # type: ignore[union-attr]
+
 		self._session_record = SpecialProSessionRecordingComponent(target_track_component = TargetTrackComponent(), control_surface = self._control_surface)
 		self._session_record._set_parent(self)
-		
+
 		if self._control_surface._mk2_rgb:
 			from .ColorsMK2 import CLIP_COLOR_TABLE, RGB_COLOR_TABLE
 			self.set_rgb_mode(CLIP_COLOR_TABLE, RGB_COLOR_TABLE)
-			
-		self._setup_actions_buttons()	
+
+		self._setup_actions_buttons()
 		self._set_undo_button(self._side_buttons[0]) 
 		#INSTANT: UNDO - LONG: REDO
 		

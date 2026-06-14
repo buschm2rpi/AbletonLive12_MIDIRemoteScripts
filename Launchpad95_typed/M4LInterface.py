@@ -58,5 +58,5 @@ class M4LInterface(ControlSurfaceComponent):
 		return self._updateML_listener is not None
 
 	def update(self, args: object = None) -> None:
-		if self.updateML_has_listener(None):
+		if self._updateML_listener is not None:
 			self._updateML_listener()

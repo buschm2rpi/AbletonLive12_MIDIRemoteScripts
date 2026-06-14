@@ -42,7 +42,8 @@ class SubSelectorComponent(ModeSelectorComponent):
 		self._session = session
 		self._mixer = SpecialMixerComponent(matrix.width())
 		self._matrix = matrix
-		self._sliders: list[PreciseButtonSliderElement] = []
+		self._sliders = []
+		self._modes_buttons: list[ButtonElement] = []
 		self._mixer.name = 'Mixer'
 		self._mixer.master_strip().name = 'Master_Channel_strip'
 		self._mixer.selected_strip().name = 'Selected_Channel_strip'
@@ -53,6 +54,7 @@ class SubSelectorComponent(ModeSelectorComponent):
 
 		self._side_buttons = side_buttons[4:]
 		self._update_callback: Optional[Callable[[], None]] = None
+		self._mode_index: int = -1
 		self._session.set_mixer(self._mixer)
 		self.set_modes_buttons(side_buttons[:4])
 
@@ -61,15 +63,16 @@ class SubSelectorComponent(ModeSelectorComponent):
 			button.remove_value_listener(self._mode_value)
 
 		self._session = None
-		self._mixer = None
-		for slider in self._sliders:
-			slider.release_parameter()
-			slider.set_disabled(True)
+		self._mixer = None  # type: ignore[assignment]
+		if self._sliders is not None:
+			for slider in self._sliders:
+				slider.release_parameter()
+				slider.set_disabled(True)
 
-		self._sliders = None
-		self._matrix = None
-		self._side_buttons = None
-		self._update_callback = None
+		self._sliders = None  # type: ignore[assignment]
+		self._matrix = None  # type: ignore[assignment]
+		self._side_buttons = None  # type: ignore[assignment]
+		self._update_callback = None  # type: ignore[assignment]
 		ModeSelectorComponent.disconnect(self)
 
 	def set_update_callback(self, callback: Callable[[], None]) -> None:
@@ -77,7 +80,8 @@ class SubSelectorComponent(ModeSelectorComponent):
 
 	def set_modes_buttons(self, buttons: Tuple[ButtonElement, ...] | None) -> None:
 		assert ((buttons is None) or (isinstance(buttons, tuple)))
-		assert (len(buttons) == self.number_of_modes())
+		if buttons is not None:
+			assert (len(buttons) == self.number_of_modes())
 		identify_sender = True
 		for button in self._modes_buttons:
 			button.remove_value_listener(self._mode_value)

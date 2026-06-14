@@ -91,6 +91,8 @@ class Launchpad(ControlSurface):
 		self._skin: object  # type: ignore[assignment]
 		self._osd: M4LInterface  # type: ignore[assignment]
 		self._note_repeat: NoteRepeatComponent  # type: ignore[assignment]
+		self._side_notes: Tuple[int, ...] = ()
+		self._drum_notes: Tuple[int, ...] = ()
 		
 			
 	def init(self) -> None:
@@ -103,19 +105,19 @@ class Launchpad(ControlSurface):
 		if self._mk3_rgb or self._lpx:
 			from .SkinMK2 import make_skin
 			self._skin = make_skin()
-			self._side_notes: Tuple[int, ...] = (89, 79, 69, 59, 49, 39, 29, 19)
-			self._drum_notes: Tuple[int, ...] = (20, 30, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126)
+			self._side_notes = (89, 79, 69, 59, 49, 39, 29, 19)
+			self._drum_notes = (20, 30, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126)
 		elif self._mk2_rgb:
 			from .SkinMK2 import make_skin
 			self._skin = make_skin()
-			self._side_notes: Tuple[int, ...] = (89, 79, 69, 59, 49, 39, 29, 19)
+			self._side_notes = (89, 79, 69, 59, 49, 39, 29, 19)
 			#self._drum_notes = (20, 30, 31, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126)
-			self._drum_notes: Tuple[int, ...] = (20, 30, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126)
+			self._drum_notes = (20, 30, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126)
 		else:
 			from .SkinMK1 import make_skin  # @Reimport
 			self._skin = make_skin()
-			self._side_notes: Tuple[int, ...] = (8, 24, 40, 56, 72, 88, 104, 120)
-			self._drum_notes: Tuple[int, ...] = (41, 42, 43, 44, 45, 46, 47, 57, 58, 59, 60, 61, 62, 63, 73, 74, 75, 76, 77, 78, 79, 89, 90, 91, 92, 93, 94, 95, 105, 106, 107)
+			self._side_notes = (8, 24, 40, 56, 72, 88, 104, 120)
+			self._drum_notes = (41, 42, 43, 44, 45, 46, 47, 57, 58, 59, 60, 61, 62, 63, 73, 74, 75, 76, 77, 78, 79, 89, 90, 91, 92, 93, 94, 95, 105, 106, 107)
 		
 		with self.component_guard():
 			is_momentary = True
@@ -200,8 +202,10 @@ class Launchpad(ControlSurface):
 				control.remove_value_listener(self._button_value)
 		self._do_uncombine()
 		if self._selector is not None:
-			self._user_byte_write_button.remove_value_listener(self._user_byte_value)
-			self._config_button.remove_value_listener(self._config_value)
+			if self._user_byte_write_button is not None:
+				self._user_byte_write_button.remove_value_listener(self._user_byte_value)
+			if self._config_button is not None:
+				self._config_button.remove_value_listener(self._config_value)
 		ControlSurface.disconnect(self)
 		self._suppress_send_midi = False
 		if self._lpx:
@@ -235,9 +239,9 @@ class Launchpad(ControlSurface):
 	_combine_active_instances = staticmethod(_combine_active_instances)
 
 	def _activate_combination_mode(self, track_offset: int, support_devices: bool) -> None:
-		if(Settings.STEPSEQ__LINK_WITH_SESSION):
+		if self._selector is not None and Settings.STEPSEQ__LINK_WITH_SESSION:
 			self._selector._stepseq.link_with_step_offset(track_offset)
-		if(Settings.SESSION__LINK):
+		if self._selector is not None and Settings.SESSION__LINK:
 			self._selector._session.link_with_track_offset(track_offset)
 
 	def _do_combine(self) -> None:
@@ -248,10 +252,11 @@ class Launchpad(ControlSurface):
 	def _do_uncombine(self) -> None:
 		if self in Launchpad._active_instances:
 			Launchpad._active_instances.remove(self)
-			if(Settings.SESSION__LINK):
-				self._selector._session.unlink()
-			if(Settings.STEPSEQ__LINK_WITH_SESSION):
-				self._selector._stepseq.unlink()
+			if self._selector is not None:
+				if Settings.SESSION__LINK:
+					self._selector._session.unlink()
+				if Settings.STEPSEQ__LINK_WITH_SESSION:
+					self._selector._stepseq.unlink()
 			Launchpad._combine_active_instances()
 
 	def refresh_state(self) -> None:
@@ -364,7 +369,8 @@ class Launchpad(ControlSurface):
 					if isinstance(control, ConfigurableButtonElement):
 						control.force_next_send()
 
-			self._selector.set_mode(0)
+			if self._selector is not None:
+				self._selector.set_mode(0)
 			self.set_enabled(enabled)
 			self._suppress_send_midi = False
 		else:
