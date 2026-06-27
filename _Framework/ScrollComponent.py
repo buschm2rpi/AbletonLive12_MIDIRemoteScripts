@@ -83,19 +83,19 @@ class ScrollComponent(ControlSurfaceComponent, Scrollable):
         self.scroll_up_button.enabled = self.can_scroll_up()
         self.scroll_down_button.enabled = self.can_scroll_down()
 
-    @scroll_up_button.pressed
+    @scroll_up_button.pressed  # type: ignore[misc,no-redef]
     def scroll_up_button(self, button):
         self._on_scroll_pressed(button, self._do_scroll_up, self._scroll_task_up)
 
-    @scroll_up_button.released
+    @scroll_up_button.released  # type: ignore[misc,no-redef]
     def scroll_up_button(self, button):
         self._on_scroll_released(self._scroll_task_up)
 
-    @scroll_down_button.pressed
+    @scroll_down_button.pressed  # type: ignore[misc,no-redef]
     def scroll_down_button(self, button):
         self._on_scroll_pressed(button, self._do_scroll_down, self._scroll_task_down)
 
-    @scroll_down_button.released
+    @scroll_down_button.released  # type: ignore[misc,no-redef]
     def scroll_down_button(self, button):
         self._on_scroll_released(self._scroll_task_down)
 

@@ -10,6 +10,7 @@ from future.utils import with_metaclass
 from past.builtins import basestring
 from functools import partial, wraps
 from itertools import repeat
+from typing import Any, Dict, List, Optional
 from ableton.v2.base import old_hasattr
 from .Disconnectable import CompoundDisconnectable, Disconnectable
 from .Signal import Signal
@@ -90,7 +91,7 @@ class SubjectMeta(type):
         return cls
 
 
-class Subject(with_metaclass(SubjectMeta, Disconnectable)):
+class Subject(with_metaclass(SubjectMeta, Disconnectable)):  # type: ignore[misc]
     pass
 
 
@@ -108,8 +109,8 @@ class SlotManager(CompoundDisconnectable):
 
 
 class SubjectSlot(Disconnectable):
-    _extra_kws = {}
-    _extra_args = []
+    _extra_kws: Dict[type, Any] = {}
+    _extra_args: List[Any] = []
 
     def __init__(self, subject=None, listener=None, event=None, extra_kws=None, extra_args=None, *a, **k):
         (super(SubjectSlot, self).__init__)(*a, **k)
@@ -205,8 +206,8 @@ class CallableSlotMixin(object):
 
 class SubjectSlotGroup(SlotManager):
     listener = None
-    _extra_kws = None
-    _extra_args = None
+    _extra_kws: Optional[Dict[type, Any]] = None
+    _extra_args: Optional[List[Any]] = None
 
     def __init__(self, listener=None, event=None, extra_kws=None, extra_args=None, *a, **k):
         (super(SubjectSlotGroup, self).__init__)(*a, **k)

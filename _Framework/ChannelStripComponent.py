@@ -7,6 +7,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 from builtins import range
 from itertools import chain
+from typing import List
 import Live
 from .ControlSurfaceComponent import ControlSurfaceComponent
 from .DisplayDataSource import DisplayDataSource
@@ -23,9 +24,9 @@ def reset_button(button):
 
 
 class ChannelStripComponent(ControlSurfaceComponent):
-    _active_instances = []
+    _active_instances: List["ChannelStripComponent"] = []
 
-    def number_of_arms_pressed():
+    def number_of_arms_pressed(self: "ChannelStripComponent"):
         result = 0
         for strip in ChannelStripComponent._active_instances:
             if strip.arm_button_pressed():
@@ -35,7 +36,7 @@ class ChannelStripComponent(ControlSurfaceComponent):
 
     number_of_arms_pressed = staticmethod(number_of_arms_pressed)
 
-    def number_of_solos_pressed():
+    def number_of_solos_pressed(self: "ChannelStripComponent"):
         result = 0
         for strip in ChannelStripComponent._active_instances:
             if strip.solo_button_pressed():

@@ -318,6 +318,7 @@ class Colors:
             Step7 = Rgb.PINK
             Step8 = Rgb.PURPLE
             Step9 = Rgb.WHITE
+
         class PrecisionSlider:
             On = Rgb.LIGHT_BLUE
             Off = Rgb.LIGHT_BLUE_THIRD

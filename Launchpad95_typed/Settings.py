@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 from typing import Tuple
@@ -24,14 +23,14 @@ class Settings:
     # the 3 first value configure the 3 sub modes of button user mode 1,
     # and following ones are for user mode 2 button
     USER_MODES_1: list[str] = [
-		"instrument"
-		, "device"
-		# ,"user 1"
+        "instrument",
+        "device",
+        # ,"user 1"
     ]
     USER_MODES_2: list[str] = [
-		"drum stepseq"
-		, "melodic stepseq"
-		# ,"user 2"
+        "drum stepseq",
+        "melodic stepseq",
+        # ,"user 2"
     ]
 
     # Device control mode
@@ -42,7 +41,7 @@ class Settings:
     VELOCITY_THRESHOLD_MIN: int = 40
     # used for the gradient of the parameter change
     # the higher the value, the slower the parameter change
-    VELOCITY_FACTOR: float = (127 ** 2) * (127 / 2)
+    VELOCITY_FACTOR: float = (127**2) * (127 / 2)
     USE_CUSTOM_DEVICE_CONTROL_COLORS: bool = False
     # time sensitive stepless fader
     ENABLE_TDC: bool = True
@@ -50,7 +49,6 @@ class Settings:
     TDC_MAX_TIME: float = 2.0
     # The number of seconds it takes for a parameter to change from min to max value for each step
     TDC_MAP: list[float] = [0, 0.75, 1.5, 3, 5, 8, 12, 17, 25, 40]
-
 
     # Logging feature for debugging (creates C:/Users/{USERNAME}/Documents/Ableton/User Library/Remote Scripts/log.txt)
     LOGGING: bool = False

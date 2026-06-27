@@ -74,8 +74,7 @@ def chunks(lst, chunk_size):
 
 
 def maybe(fn):
-    return (lambda x:     if x is not None:
-fn(x) # Avoid dead code: None)
+    return (lambda x: fn(x) if x is not None else None)
 
 
 def memoize(function):

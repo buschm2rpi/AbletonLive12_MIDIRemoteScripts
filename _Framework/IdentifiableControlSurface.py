@@ -27,7 +27,8 @@ class IdentifiableControlSurface(ControlSurface):
     def port_settings_changed(self):
         self._request_task.restart()
 
-    def handle_sysexParse error at or near `POP_TOP' instruction at offset 106
+    def handle_sysex(self, sysex):
+        pass
 
     def _is_identity_response(self, midi_bytes):
         return midi_bytes[3[:5]] == (6, 2)

@@ -7,6 +7,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 from future.builtins import filter, zip
 from future.utils import iteritems, string_types, with_metaclass
+from typing import Any, Dict, List
 import weakref
 from functools import partial, wraps
 from itertools import chain, repeat
@@ -113,7 +114,7 @@ class EventObjectMeta(type):
         return cls
 
 
-class EventObject(with_metaclass(EventObjectMeta, CompoundDisconnectable)):
+class EventObject(with_metaclass(EventObjectMeta, CompoundDisconnectable)):  # type: ignore[misc]
 
     def register_slot(self, *a, **k):
         slot = a[0] if (a and isinstance(a[0], Slot)) else (Slot(*a, **k))
@@ -122,8 +123,8 @@ class EventObject(with_metaclass(EventObjectMeta, CompoundDisconnectable)):
 
 
 class Slot(Disconnectable):
-    _extra_kws = {}
-    _extra_args = []
+    _extra_kws: Dict[type, Any] = {}
+    _extra_args: List[Any] = []
 
     def __init__(self, subject=None, listener=None, event_name=None, extra_kws=None, extra_args=None, *a, **k):
         (super(Slot, self).__init__)(*a, **k)
@@ -389,7 +390,7 @@ class SerializableListenablePropertiesBase(Disconnectable):
         pass
 
 
-class SerializableListenableProperties(with_metaclass(SerializableListenablePropertiesMeta, SerializableListenablePropertiesBase)):
+class SerializableListenableProperties(with_metaclass(SerializableListenablePropertiesMeta, SerializableListenablePropertiesBase)):  # type: ignore[misc]
     pass
 
 

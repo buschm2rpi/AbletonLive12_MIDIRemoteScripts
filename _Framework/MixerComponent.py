@@ -222,7 +222,10 @@ class MixerComponent(CompoundComponent):
     def tracks_to_use(self):
         return self.song().visible_tracks
 
-    def updateParse error at or near `STORE_ATTR' instruction at offset 160
+    def update(self):
+        self._reassign_tracks()
+        for strip in self._channel_strips:
+            strip.update()
 
     def _reassign_tracks(self):
         tracks = self.tracks_to_use()

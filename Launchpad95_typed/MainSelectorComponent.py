@@ -9,7 +9,7 @@ import time
 from _Framework.ModeSelectorComponent import ModeSelectorComponent
 from _Framework.ButtonElement import ButtonElement
 from _Framework.ButtonMatrixElement import ButtonMatrixElement
-from _Framework.SessionZoomingComponent import DeprecatedSessionZoomingComponent # noqa
+from _Framework.SessionZoomingComponent import DeprecatedSessionZoomingComponent  # noqa
 
 from .DeviceControllerComponent import DeviceControllerComponent
 from .InstrumentControllerComponent import InstrumentControllerComponent
@@ -21,604 +21,750 @@ from .SpecialProSessionComponent import SpecialProSessionComponent
 from .Settings import Settings
 
 if TYPE_CHECKING:
-	from .M4LInterface import M4LInterface
+    from .M4LInterface import M4LInterface
+
 
 class MainSelectorComponent(ModeSelectorComponent):
+    """Class that reassigns the button on the launchpad to different functions"""
 
-	""" Class that reassigns the button on the launchpad to different functions """
+    def __init__(
+        self,
+        matrix: ButtonMatrixElement,
+        top_buttons: Tuple[ButtonElement, ...],
+        side_buttons: Tuple[ButtonElement, ...],
+        config_button: ButtonElement,
+        osd: M4LInterface,
+        control_surface: Any,
+        note_repeat: NoteRepeatComponent,
+        c_instance: Any,
+    ) -> None:
+        # verify matrix dimentions
+        assert isinstance(matrix, ButtonMatrixElement)
+        assert (matrix.width() == 8) and (matrix.height() == 8)
+        assert isinstance(top_buttons, tuple)
+        assert len(top_buttons) == 8
+        assert isinstance(side_buttons, tuple)
+        assert len(side_buttons) == 8
+        assert isinstance(config_button, ButtonElement)
+        assert isinstance(note_repeat, NoteRepeatComponent)
+        ModeSelectorComponent.__init__(self)  # super constructor
 
+        # inject ControlSurface and OSD components (M4L)
+        self._matrix: Optional[ButtonMatrixElement] = matrix
+        self._nav_buttons: Optional[Tuple[ButtonElement, ...]] = top_buttons[
+            :4
+        ]  # arrow buttons
+        self._mode_buttons = top_buttons[4:]  # session,user1,user2,mixer buttons
+        self._side_buttons: Optional[Tuple[ButtonElement, ...]] = (
+            side_buttons  # launch buttons
+        )
+        self._config_button: Optional[ButtonElement] = (
+            config_button  # used to reset launchpad
+        )
+        self._osd = osd
+        self._control_surface = control_surface
+        self._note_repeat = note_repeat
+        self._c_instance = c_instance
+        self._pro_session_on = False
+        self._long_press = 500
+        self._last_session_mode_button_press = int(round(time.time() * 1000))
+        self._aux_scene = None
+        # Non-Matrix buttons
+        self._all_buttons = []
+        for button in self._side_buttons + self._nav_buttons:
+            self._all_buttons.append(button)
 
-	def __init__(
-		self,
-		matrix: ButtonMatrixElement,
-		top_buttons: Tuple[ButtonElement, ...],
-		side_buttons: Tuple[ButtonElement, ...],
-		config_button: ButtonElement,
-		osd: M4LInterface,
-		control_surface: Any,
-		note_repeat: NoteRepeatComponent,
-		c_instance: Any
-	) -> None:
-		#verify matrix dimentions
-		assert isinstance(matrix, ButtonMatrixElement)
-		assert ((matrix.width() == 8) and (matrix.height() == 8))
-		assert isinstance(top_buttons, tuple)
-		assert (len(top_buttons) == 8)
-		assert isinstance(side_buttons, tuple)
-		assert (len(side_buttons) == 8)
-		assert isinstance(config_button, ButtonElement)
-		assert isinstance(note_repeat, NoteRepeatComponent)
-		ModeSelectorComponent.__init__(self) #super constructor
-		
-		#inject ControlSurface and OSD components (M4L)
-		self._matrix = matrix
-		self._nav_buttons = top_buttons[:4]#arrow buttons
-		self._mode_buttons = top_buttons[4:]#session,user1,user2,mixer buttons
-		self._side_buttons = side_buttons#launch buttons
-		self._config_button = config_button#used to reset launchpad
-		self._osd = osd
-		self._control_surface = control_surface
-		self._note_repeat = note_repeat
-		self._c_instance = c_instance
-		self._pro_session_on = False
-		self._long_press = 500
-		self._last_session_mode_button_press = int(round(time.time() * 1000))
-		self._aux_scene = None
-		#Non-Matrix buttons
-		self._all_buttons: list[Any] = []
-		for button in self._side_buttons + self._nav_buttons:
-			self._all_buttons.append(button)
+        # initialize index variables
+        self._mode_index = 0  # Inherited from parent
+        self._main_mode_index = 0  # LP original modes
+        self._sub_mode_list = [0, 0, 0, 0]
+        for index in range(4):
+            self._sub_mode_list[index] = 0
+        self.set_mode_buttons(self._mode_buttons)
+        self._last_mode_index = 0
 
-		#initialize index variables
-		self._mode_index = 0 #Inherited from parent
-		self._main_mode_index = 0 #LP original modes
-		self._sub_mode_list = [0, 0, 0, 0]
-		for index in range(4):
-			self._sub_mode_list[index] = 0
-		self.set_mode_buttons(self._mode_buttons)
-		self._last_mode_index = 0 
-			
+        self._clip_stop_buttons = []
+        for column in range(8):
+            self._clip_stop_buttons.append(
+                matrix.get_button(column, matrix.height() - 1)
+            )
+        self._session: Optional[SpecialProSessionComponent] = (
+            SpecialProSessionComponent(
+                matrix.width(),
+                matrix.height(),
+                None,
+                self._side_buttons,
+                self._control_surface,
+                self,
+                self._c_instance.song(),
+            )
+        )
 
-		self._clip_stop_buttons = [] 
-		for column in range(8):
-			self._clip_stop_buttons.append(matrix.get_button(column,matrix.height()-1))
-		self._session = SpecialProSessionComponent(matrix.width(), matrix.height(), None, self._side_buttons, self._control_surface, self, self._c_instance.song())
-						
-			
-		#initialize _session variables	
-		self._session.set_osd(self._osd)
-		self._session.name = 'Session_Control'
-		
-		###ZOOMING COMPONENT
-		self._zooming = DeprecatedSessionZoomingComponent(self._session, enable_skinning = True)
-		self._zooming.name = 'Session_Overview'
-		self._zooming.set_empty_value("DefaultButton.Disabled")
-		
-		#Non-Matrix buttons
-		self._all_buttons = []
-		for button in self._side_buttons + self._nav_buttons:
-			self._all_buttons.append(button)
+        # initialize _session variables
+        if self._session is not None:
+            self._session.set_osd(self._osd)
+            self._session.name = "Session_Control"
 
-		#SubSelector changes the Mode using side buttons -> MIXER MODE (ie. Pan, Volume, Send1, Send2, Stop, Solo, Activate, Arm)
-		self._sub_modes = SubSelectorComponent(matrix, side_buttons, self._session, self._control_surface)
-		self._sub_modes.name = 'Mixer_Modes'
-		self._sub_modes._mixer.set_osd(self._osd)
-		self._sub_modes.set_update_callback(self._update_control_channels)
+        ###ZOOMING COMPONENT
+        self._zooming: Optional[DeprecatedSessionZoomingComponent] = (
+            DeprecatedSessionZoomingComponent(self._session, enable_skinning=True)
+        )
+        self._zooming.name = "Session_Overview"
+        self._zooming.set_empty_value("DefaultButton.Disabled")
 
-		#User2 stepSequencer (Drum & Melodic)
-		self._stepseq = StepSequencerComponent(self._matrix, self._side_buttons, self._nav_buttons, self._control_surface)
-		self._stepseq.set_osd(self._osd)
-		
-		#User2 stepSequencer (Retro style)
-		self._stepseq2 = StepSequencerComponent2(self._matrix, self._side_buttons, self._nav_buttons, self._control_surface)
-		self._stepseq2.set_osd(self._osd)
-		
-		#User1 Instrument controller (Scale)
-		self._instrument_controller = InstrumentControllerComponent(self._matrix, self._side_buttons, self._nav_buttons, self._control_surface, self._note_repeat)
-		self._instrument_controller.set_osd(self._osd)
-		#self._instrument_controller = None
-		
-		#User1 Device controller (Fx or Instrument parameters)
-		self._device_controller = DeviceControllerComponent(control_surface = self._control_surface, matrix = self._matrix, side_buttons = self._side_buttons, top_buttons =  self._nav_buttons)
-		self._device_controller.set_osd(self._osd)
+        # Non-Matrix buttons
+        self._all_buttons = []
+        for button in self._side_buttons + self._nav_buttons:
+            self._all_buttons.append(button)
 
-		self._init_session()
-		self._all_buttons = tuple(self._all_buttons)  # type: ignore[assignment]
+        # SubSelector changes the Mode using side buttons -> MIXER MODE (ie. Pan, Volume, Send1, Send2, Stop, Solo, Activate, Arm)
+        self._sub_modes = SubSelectorComponent(
+            matrix, side_buttons, self._session, self._control_surface
+        )
+        self._sub_modes.name = "Mixer_Modes"
+        if self._sub_modes._mixer is not None:
+            self._sub_modes._mixer.set_osd(self._osd)
+        self._sub_modes.set_update_callback(self._update_control_channels)
 
-	def disconnect(self) -> None:
-		for button in self._modes_buttons:
-			button.remove_value_listener(self._mode_value)
+        # User2 stepSequencer (Drum & Melodic)
+        self._stepseq = StepSequencerComponent(
+            self._matrix, self._side_buttons, self._nav_buttons, self._control_surface
+        )
+        self._stepseq.set_osd(self._osd)
 
-		self._session = None  # type: ignore[assignment]
-		self._zooming = None  # type: ignore[assignment]
-		for button in self._all_buttons:
-			button.set_on_off_values("DefaultButton.Disabled", "DefaultButton.Disabled")
+        # User2 stepSequencer (Retro style)
+        self._stepseq2 = StepSequencerComponent2(
+            self._matrix, self._side_buttons, self._nav_buttons, self._control_surface
+        )
+        self._stepseq2.set_osd(self._osd)
 
-		self._config_button.turn_off()
-		self._matrix = None
-		self._side_buttons = None  # type: ignore[assignment]
-		self._nav_buttons = None  # type: ignore[assignment]
-		self._config_button = None
-		ModeSelectorComponent.disconnect(self)
+        # User1 Instrument controller (Scale)
+        self._instrument_controller = InstrumentControllerComponent(
+            self._matrix,
+            self._side_buttons,
+            self._nav_buttons,
+            self._control_surface,
+            self._note_repeat,
+        )
+        self._instrument_controller.set_osd(self._osd)
+        # self._instrument_controller = None
 
-	def session_component(self) -> SpecialProSessionComponent:  # type: ignore[return-value]
-		return self._session
+        # User1 Device controller (Fx or Instrument parameters)
+        self._device_controller = DeviceControllerComponent(
+            control_surface=self._control_surface,
+            matrix=self._matrix,
+            side_buttons=self._side_buttons,
+            top_buttons=self._nav_buttons,
+        )
+        self._device_controller.set_osd(self._osd)
 
-	def _update_mode(self) -> None:
-		mode = self._modes_heap[-1][0] #get first value of last _modes_heap tuple. _modes_heap tuple structure is (mode, sender, observer) 
+        self._init_session()
+        self._all_buttons = list(self._all_buttons)
 
-		assert mode in range(self.number_of_modes()) # 8 for this script
-		if self._main_mode_index == mode:
-			if self._main_mode_index == 1: #user mode 1 and device controller and instrument mode
-				self._sub_mode_list[self._main_mode_index] = (self._sub_mode_list[self._main_mode_index] + 1) % len(Settings.USER_MODES_1)
-				self.update()
-			elif self._main_mode_index == 2: #user mode 2  and step sequencer
-				self._sub_mode_list[self._main_mode_index] = (self._sub_mode_list[self._main_mode_index] + 1) % len(Settings.USER_MODES_2)
-				self.update()
-			elif self._main_mode_index == 3: #Mixer mode
-				self.update()
-			else: #Session mode
-				self._sub_mode_list[self._main_mode_index] = 0
-				self._mode_index = 0
-				self.update()
-		
-		else:
-			self._main_mode_index = mode
-			self.update()
+    def disconnect(self) -> None:
+        for button in self._modes_buttons:
+            button.remove_value_listener(self._mode_value)
 
-	def set_mode(self, mode: int) -> None:
-		self._clean_heap()
-		self._modes_heap = [(mode, None, None)]
+        self._session = None
+        self._zooming = None
+        for button in self._all_buttons:
+            button.set_on_off_values("DefaultButton.Disabled", "DefaultButton.Disabled")
 
-	def _mode_value(self, value: int, sender: ButtonElement) -> None:
-		assert len(self._modes_buttons) > 0
-		assert isinstance(value, int)
-		assert sender in self._modes_buttons
-		session_mode_changed = False
-		new_mode = self._modes_buttons.index(sender)
-		now = int(round(time.time() * 1000))
-		if new_mode == 0 and self._last_mode_index == 0:
-			if value > 0:
-				self._last_session_mode_button_press = now
-			else:
-				if now - self._last_session_mode_button_press < self._long_press:
-					self._pro_session_on = not self._pro_session_on
-					session_mode_changed = True
-		self._last_mode_index = new_mode
-		super(MainSelectorComponent, self)._mode_value(value, sender)
-		if session_mode_changed:
-			self._update_mode()
+        if self._config_button is not None:
+            self._config_button.turn_off()
+        self._matrix = None
+        self._side_buttons = None
+        self._nav_buttons = None
+        self._config_button = None
+        ModeSelectorComponent.disconnect(self)
 
-	def number_of_modes(self) -> int:
-		return 1 + 3 + 3 + 1
+    def session_component(self) -> Optional[SpecialProSessionComponent]:
+        return self._session
 
-	def on_enabled_changed(self) -> None:
-		self.update()
+    def _update_mode(self) -> None:
+        mode = self._modes_heap[
+            -1
+        ][
+            0
+        ]  # get first value of last _modes_heap tuple. _modes_heap tuple structure is (mode, sender, observer)
 
-	def _update_mode_buttons(self) -> None:
-		self._modes_buttons[0].set_on_off_values("Mode.Session.On","Mode.Session.Off")
-		self._modes_buttons[3].set_on_off_values("Mode.Mixer.On","Mode.Mixer.Off")
-		mode1 = self.getSkinName(Settings.USER_MODES_1[self._sub_mode_list[1]])
-		mode2 = self.getSkinName(Settings.USER_MODES_2[self._sub_mode_list[2]])
-		self._modes_buttons[1].set_on_off_values("Mode."+mode1+".On","Mode."+mode1+".Off")
-		self._modes_buttons[2].set_on_off_values("Mode."+mode2+".On","Mode."+mode2+".Off")
-		
-		for index in range(4):
-			if (index == self._main_mode_index):
-				self._modes_buttons[index].turn_on()
-			else:
-				self._modes_buttons[index].turn_off()
-		
-	def getSkinName(self, user2Mode: str) -> str:
-		if user2Mode == "instrument":
-			user2Mode = "Note"
-		if user2Mode == "device":
-			user2Mode = "Device"
-		if user2Mode == "user 1":
-			user2Mode = "User"
-		if user2Mode == "user 2":
-			user2Mode = "User2"
-		if user2Mode == "drum stepseq":
-			user2Mode = "StepSequencer"
-		if user2Mode == "melodic stepseq":
-			user2Mode = "StepSequencer2"
-		return user2Mode
+        assert mode in range(self.number_of_modes())  # 8 for this script
+        if self._main_mode_index == mode:
+            if (
+                self._main_mode_index == 1
+            ):  # user mode 1 and device controller and instrument mode
+                self._sub_mode_list[self._main_mode_index] = (
+                    self._sub_mode_list[self._main_mode_index] + 1
+                ) % len(Settings.USER_MODES_1)
+                self.update()
+            elif self._main_mode_index == 2:  # user mode 2  and step sequencer
+                self._sub_mode_list[self._main_mode_index] = (
+                    self._sub_mode_list[self._main_mode_index] + 1
+                ) % len(Settings.USER_MODES_2)
+                self.update()
+            elif self._main_mode_index == 3:  # Mixer mode
+                self.update()
+            else:  # Session mode
+                self._sub_mode_list[self._main_mode_index] = 0
+                self._mode_index = 0
+                self.update()
 
-	def channel_for_current_mode(self) -> int:
-		# in this code, midi channels start at 0.
-		# so channels range from 0 - 15.
-		# mapping to 1-16 in the real world
+        else:
+            self._main_mode_index = mode
+            self.update()
 
-		if self._main_mode_index == 0:
-			new_channel = 0  # session
+    def set_mode(self, mode: int) -> None:
+        self._clean_heap()
+        self._modes_heap = [(mode, None, None)]
 
-		elif self._main_mode_index == 1:
-			if self._sub_mode_list[self._main_mode_index] == 0:
-				new_channel = 11  # instrument controller
-				# instrument controller uses base channel plus the 4 next ones. 11,12,13,14,15
-				if self._instrument_controller is not None:
-					self._instrument_controller.base_channel = new_channel
-			elif self._sub_mode_list[self._main_mode_index] == 1:
-				new_channel = 3  # device controller
-			elif self._sub_mode_list[self._main_mode_index] == 2:
-				new_channel = 4  # plain user mode 1
+    def _mode_value(self, value: int, sender: ButtonElement) -> None:
+        assert len(self._modes_buttons) > 0
+        assert isinstance(value, int)
+        assert sender in self._modes_buttons
+        session_mode_changed = False
+        new_mode = self._modes_buttons.index(sender)
+        now = int(round(time.time() * 1000))
+        if new_mode == 0 and self._last_mode_index == 0:
+            if value > 0:
+                self._last_session_mode_button_press = now
+            else:
+                if now - self._last_session_mode_button_press < self._long_press:
+                    self._pro_session_on = not self._pro_session_on
+                    session_mode_changed = True
+        self._last_mode_index = new_mode
+        super(MainSelectorComponent, self)._mode_value(value, sender)
+        if session_mode_changed:
+            self._update_mode()
 
-		elif self._main_mode_index == 2:
-			if self._sub_mode_list[self._main_mode_index] == 0:
-				new_channel = 1  # step seq
-			elif self._sub_mode_list[self._main_mode_index] == 1:
-				new_channel = 2  # melodic step seq
-			elif self._sub_mode_list[self._main_mode_index] == 2:
-				new_channel = 5  # plain user mode 2
+    def number_of_modes(self) -> int:
+        return 1 + 3 + 3 + 1
 
-		elif self._main_mode_index == 3:  # mixer modes
-			# mixer uses base channel 7 and the 4 next ones.
-			new_channel = 6 + self._sub_modes.mode()  # 6,7,8,9,10
+    def on_enabled_changed(self) -> None:
+        self.update()
 
-		return new_channel
-	
-	def update(self) -> None:
-		assert (self._modes_buttons is not None)
-		if self.is_enabled():
+    def _update_mode_buttons(self) -> None:
+        self._modes_buttons[0].set_on_off_values("Mode.Session.On", "Mode.Session.Off")
+        self._modes_buttons[3].set_on_off_values("Mode.Mixer.On", "Mode.Mixer.Off")
+        mode1 = self.getSkinName(Settings.USER_MODES_1[self._sub_mode_list[1]])
+        mode2 = self.getSkinName(Settings.USER_MODES_2[self._sub_mode_list[2]])
+        self._modes_buttons[1].set_on_off_values(
+            "Mode." + mode1 + ".On", "Mode." + mode1 + ".Off"
+        )
+        self._modes_buttons[2].set_on_off_values(
+            "Mode." + mode2 + ".On", "Mode." + mode2 + ".Off"
+        )
 
-			self._update_mode_buttons()
+        for index in range(4):
+            if index == self._main_mode_index:
+                self._modes_buttons[index].turn_on()
+            else:
+                self._modes_buttons[index].turn_off()
 
-			as_active = True
-			as_enabled = True
-			self._session.set_allow_update(False)
-			self._zooming.set_allow_update(False)
-			self._config_button.send_value(40) #Set LP double buffering mode (investigate this)
-			self._config_button.send_value(1) #Set LP X-Y layout grid mapping mode
+    def getSkinName(self, user2Mode: str) -> str:
+        if user2Mode == "instrument":
+            user2Mode = "Note"
+        if user2Mode == "device":
+            user2Mode = "Device"
+        if user2Mode == "user 1":
+            user2Mode = "User"
+        if user2Mode == "user 2":
+            user2Mode = "User2"
+        if user2Mode == "drum stepseq":
+            user2Mode = "StepSequencer"
+        if user2Mode == "melodic stepseq":
+            user2Mode = "StepSequencer2"
+        return user2Mode
 
-			if self._main_mode_index == 0:
-				# session
-				if(self._pro_session_on):
-					self._control_surface.show_message("PRO SESSION MODE")
-				else:
-					self._control_surface.show_message("SESSION MODE")
-				self._setup_mixer(not as_active)
-				self._setup_device_controller(not as_active)
-				self._setup_step_sequencer(not as_active)
-				self._setup_step_sequencer2(not as_active)
-				self._setup_instrument_controller(not as_active)
-				self._setup_session(as_active, as_enabled)
-				self._update_control_channels()
-				self._mode_index = 0
+    def channel_for_current_mode(self) -> int:
+        # in this code, midi channels start at 0.
+        # so channels range from 0 - 15.
+        # mapping to 1-16 in the real world
 
-			elif self._main_mode_index == 1:
-				self._setup_sub_mode(Settings.USER_MODES_1[self._sub_mode_list[self._main_mode_index]])
-			elif self._main_mode_index == 2:
-				self._setup_sub_mode(Settings.USER_MODES_2[self._sub_mode_list[self._main_mode_index]])
+        if self._main_mode_index == 0:
+            new_channel = 0  # session
 
-			elif self._main_mode_index == 3:
-				# mixer
-				self._control_surface.show_message("MIXER MODE")
-				self._setup_device_controller(not as_active)
-				self._setup_step_sequencer(not as_active)
-				self._setup_step_sequencer2(not as_active)
-				self._setup_instrument_controller(not as_active)
-				self._setup_session(not as_active, as_enabled)
-				self._setup_mixer(as_active)
-				self._update_control_channels()
-				self._mode_index = 3
-			else:
-				assert False
+        elif self._main_mode_index == 1:
+            if self._sub_mode_list[self._main_mode_index] == 0:
+                new_channel = 11  # instrument controller
+                # instrument controller uses base channel plus the 4 next ones. 11,12,13,14,15
+                if self._instrument_controller is not None:
+                    self._instrument_controller.base_channel = new_channel
+            elif self._sub_mode_list[self._main_mode_index] == 1:
+                new_channel = 3  # device controller
+            elif self._sub_mode_list[self._main_mode_index] == 2:
+                new_channel = 4  # plain user mode 1
 
-			self._session.set_allow_update(True)
-			self._zooming.set_allow_update(True)
+        elif self._main_mode_index == 2:
+            if self._sub_mode_list[self._main_mode_index] == 0:
+                new_channel = 1  # step seq
+            elif self._sub_mode_list[self._main_mode_index] == 1:
+                new_channel = 2  # melodic step seq
+            elif self._sub_mode_list[self._main_mode_index] == 2:
+                new_channel = 5  # plain user mode 2
 
-	def _setup_sub_mode(self, mode: str) -> None:
-		as_active = True
-		as_enabled = True
-		if mode == "instrument":
-			self._control_surface.show_message("INSTRUMENT MODE")
-			self._setup_session(not as_active, not as_enabled)
-			self._setup_step_sequencer(not as_active)
-			self._setup_step_sequencer2(not as_active)
-			self._setup_mixer(not as_active)
-			self._setup_device_controller(not as_active)
-			self._update_control_channels()
-			self._setup_instrument_controller(as_active)
-			self._mode_index = 4
-		elif mode == "melodic stepseq":
-			self._control_surface.show_message("MELODIC SEQUENCER MODE")
-			self._setup_session(not as_active, not as_enabled)
-			self._setup_instrument_controller(not as_active)
-			self._setup_device_controller(not as_active)
-			self._setup_mixer(not as_active)
-			self._setup_step_sequencer(not as_active)
-			self._setup_step_sequencer2(as_active)
-			self._update_control_channels()
-			self._mode_index = 7
-		elif mode == "user 1":
-			self._control_surface.show_message("USER 1 MODE" )
-			self._setup_session(not as_active, not as_enabled)
-			self._setup_step_sequencer(not as_active)
-			self._setup_step_sequencer2(not as_active)
-			self._setup_mixer(not as_active)
-			self._setup_device_controller(not as_active)
-			self._setup_instrument_controller(not as_active)
-			self._setup_user_mode(True, True, False, True)
-			self._update_control_channels()
-			self._mode_index = 1
-			self._osd.clear()
-			self._osd.mode = "User 1"
-			self._osd.update()
-		elif mode == "drum stepseq":
-			self._control_surface.show_message("DRUM STEP SEQUENCER MODE")
-			self._setup_session(not as_active, not as_enabled)
-			self._setup_instrument_controller(not as_active)
-			self._setup_device_controller(not as_active)
-			self._setup_mixer(not as_active)
-			self._setup_step_sequencer2(not as_active)
-			self._setup_step_sequencer(as_active)
-			self._update_control_channels()
-			self._mode_index = 6
-		elif mode == "device":
-			self._control_surface.show_message("DEVICE CONTROLLER MODE")
-			self._setup_session(not as_active, not as_enabled)
-			self._setup_step_sequencer(not as_active)
-			self._setup_step_sequencer2(not as_active)
-			self._setup_mixer(not as_active)
-			self._setup_instrument_controller(not as_active)
-			self._setup_device_controller(as_active)
-			self._update_control_channels()
-			self._mode_index = 5
-		elif mode == "user 2":
-			self._control_surface.show_message("USER 2 MODE" )
-			self._setup_session(not as_active, not as_enabled)
-			self._setup_instrument_controller(not as_active)
-			self._setup_device_controller(not as_active)
-			self._setup_mixer(not as_active)
-			self._setup_step_sequencer(not as_active)
-			self._setup_step_sequencer2(not as_active)
-			self._setup_user_mode(False, False, False, False)
-			self._update_control_channels()
-			self._mode_index = 2
-			self._osd.clear()
-			self._osd.mode = "User 2"
-			self._osd.update()
-		
-	def _setup_session(self, as_active: bool, as_navigation_enabled: bool) -> None:
-		assert isinstance(as_active, type(False))#assert is boolean
-		for button in self._nav_buttons:
-			if as_navigation_enabled:
-				button.set_on_off_values("Mode.Session.On", "Mode.Session.Off")
-			else:
-				button.set_on_off_values("DefaultButton.Disabled", "DefaultButton.Disabled")
+        elif self._main_mode_index == 3:  # mixer modes
+            # mixer uses base channel 7 and the 4 next ones.
+            new_channel = 6 + self._sub_modes.mode()  # 6,7,8,9,10
 
-		# matrix
-		self._activate_matrix(True)
-		self._turn_off_scene_buttons()
-		
-		if (self._session.height() != self._matrix .height()) and (self._aux_scene is not None):
-			self._session._scenes.append(self._aux_scene)
-		
-		if as_active:
-			self._session._set_pro_mode_on(self._pro_session_on)
-		else:
-			self._session._set_pro_mode_on(False)	
-			
-		for scene_index in range(self._session._num_scenes):#iterate over scenes
-			scene = self._session.scene(scene_index)
-			if as_active:#set scene launch buttons
-				scene_button = self._side_buttons[scene_index]
-				scene_button.set_enabled(as_active)
-				if not self._pro_session_on:
-					scene.set_launch_button(scene_button)
-				else:
-					scene.set_launch_button(None)
-			else:
-				scene.set_launch_button(None)  
-				
-			for track_index in range(self._session._num_tracks):#iterate over tracks of a scene -> clip slots
-				if as_active:#set clip slot launch button
-					button = self._matrix.get_button(track_index, scene_index)
-					button.set_on_off_values("DefaultButton.Disabled", "DefaultButton.Disabled")
-					button.set_enabled(as_active)
-					clip_slot = scene.clip_slot(track_index)
-					if not self._pro_session_on:
-						clip_slot.set_triggered_to_play_value("Session.ClipTriggeredPlay")
-						clip_slot.set_stopped_value("Session.ClipStopped")
-						clip_slot.set_started_value("Session.ClipStarted")
-						clip_slot.set_launch_button(button)
-					else:
-						if(scene_index<self._matrix.height() -1):
-							clip_slot.set_triggered_to_play_value("ProSession.ClipTriggeredPlay")
-							clip_slot.set_stopped_value("ProSession.ClipStopped")
-							clip_slot.set_started_value("ProSession.ClipStarted")
-							clip_slot.set_launch_button(button)
-						else:
-							scene.clip_slot(track_index).set_launch_button(None)
-				else:
-					scene.clip_slot(track_index).set_launch_button(None)
-					
-		if (self._pro_session_on):
-			self._aux_scene = self._session._scenes.pop(-1)
-							
-		if as_active:#Set up stop clip buttons and stop all clips button
-			if self._pro_session_on:
-				if self._clip_stop_buttons is not None:
-					for button in self._clip_stop_buttons:
-						button.set_enabled(as_active)
-				#	button.set_on_off_values("Session.StopClip", "DefaultButton.Disabled")						
-						self._session.set_stop_track_clip_buttons(self._clip_stop_buttons)
-				else:
-					self._session.set_stop_track_clip_buttons(None)
-			else:
-				self._session.set_stop_track_clip_buttons(None)
-		else:
-			self._session.set_stop_track_clip_buttons(None)			
-				
-		if as_active:# zoom
-			self._zooming.set_zoom_button(self._modes_buttons[0])# Set Session button as zoom shift button 
-			self._zooming.set_button_matrix(self._matrix)
-			self._zooming.set_scene_bank_buttons(self._side_buttons)
-			self._zooming.set_nav_buttons(self._nav_buttons[0], self._nav_buttons[1], self._nav_buttons[2], self._nav_buttons[3])
-			self._zooming.update()
-		else:
-			self._zooming.set_zoom_button(None)
-			self._zooming.set_button_matrix(None)
-			self._zooming.set_scene_bank_buttons(None)
-			self._zooming.set_nav_buttons(None, None, None, None)
+        return new_channel
 
-		if as_navigation_enabled: # nav buttons (track/scene)
-			self._session.set_track_bank_buttons(self._nav_buttons[3], self._nav_buttons[2])
-			self._session.set_scene_bank_buttons(self._nav_buttons[1], self._nav_buttons[0])
-		else:
-			self._session.set_track_bank_buttons(None, None)
-			self._session.set_scene_bank_buttons(None, None)
+    def update(self) -> None:
+        assert self._modes_buttons is not None
+        if self.is_enabled():
+            self._update_mode_buttons()
 
-		self._session.set_enabled(as_active)
-		self._session._do_show_highlight()
-		
-		
-	def _setup_instrument_controller(self, as_active: bool) -> None:
-		if self._instrument_controller is not None:
-			if as_active:
-				self._activate_matrix(False) #Disable matrix buttons (clip slots)
-				self._activate_scene_buttons(True)#Enable side buttons
-				self._activate_navigation_buttons(True)#Enable nav buttons
-			else:
-				for scene_index in range(8):#Restore all matrix buttons and scene launch buttons
-					scene_button = self._side_buttons[scene_index]
-					scene_button.use_default_message() # Reset to original channel
-					scene_button.force_next_send() #Flush
-					for track_index in range(8):
-						button = self._matrix.get_button(track_index, scene_index)
-						button.use_default_message()# Reset to original channel
-						button.force_next_send()#Flush
-			self._instrument_controller.set_enabled(as_active)#Enable/disable instrument controller
+            as_active = True
+            as_enabled = True
+            if self._session is not None:
+                self._session.set_allow_update(False)
+            if self._zooming is not None:
+                self._zooming.set_allow_update(False)
+            if self._config_button is not None:
+                self._config_button.send_value(
+                    40
+                )  # Set LP double buffering mode (investigate this)
+                self._config_button.send_value(1)  # Set LP X-Y layout grid mapping mode
 
-	def _setup_device_controller(self, as_active: bool) -> None:
-		if self._device_controller is not None:
-			if as_active:
-				self._activate_scene_buttons(True)
-				self._activate_matrix(True)
-				self._activate_navigation_buttons(True)
-				self._device_controller._is_active = True
-				self._config_button.send_value(32)
-				self._device_controller.set_enabled(True)
-				self._device_controller.update()
-			else:
-				self._device_controller._is_active = False
-				self._device_controller.set_enabled(False)
+            if self._main_mode_index == 0:
+                # session
+                if self._pro_session_on:
+                    self._control_surface.show_message("PRO SESSION MODE")
+                else:
+                    self._control_surface.show_message("SESSION MODE")
+                self._setup_mixer(not as_active)
+                self._setup_device_controller(not as_active)
+                self._setup_step_sequencer(not as_active)
+                self._setup_step_sequencer2(not as_active)
+                self._setup_instrument_controller(not as_active)
+                self._setup_session(as_active, as_enabled)
+                self._update_control_channels()
+                self._mode_index = 0
 
-	def _setup_user_mode(self, release_matrix: bool = True, release_side_buttons: bool = True, release_nav_buttons: bool = True, drum_rack_mode: bool = True) -> None:
-		# user1 -> All True but release_nav_buttons / user2 -> All false
-		for scene_index in range(8):
-			scene_button = self._side_buttons[scene_index]
-			scene_button.set_on_off_values("DefaultButton.Disabled", "DefaultButton.Disabled")
-			scene_button.force_next_send()
-			scene_button.turn_off()
-			scene_button.set_enabled((not release_side_buttons))#User2 enabled
+            elif self._main_mode_index == 1:
+                self._setup_sub_mode(
+                    Settings.USER_MODES_1[self._sub_mode_list[self._main_mode_index]]
+                )
+            elif self._main_mode_index == 2:
+                self._setup_sub_mode(
+                    Settings.USER_MODES_2[self._sub_mode_list[self._main_mode_index]]
+                )
 
-			for track_index in range(8):
-				button = self._matrix.get_button(track_index, scene_index)
-				button.set_on_off_values("DefaultButton.Disabled", "DefaultButton.Disabled")
-				button.turn_off()
-				button.set_enabled((not release_matrix))#User2 enabled
+            elif self._main_mode_index == 3:
+                # mixer
+                self._control_surface.show_message("MIXER MODE")
+                self._setup_device_controller(not as_active)
+                self._setup_step_sequencer(not as_active)
+                self._setup_step_sequencer2(not as_active)
+                self._setup_instrument_controller(not as_active)
+                self._setup_session(not as_active, as_enabled)
+                self._setup_mixer(as_active)
+                self._update_control_channels()
+                self._mode_index = 3
+            else:
+                assert False
 
-		for button in self._nav_buttons:
-			button.set_on_off_values("DefaultButton.Disabled", "DefaultButton.Disabled")
-			button.turn_off()
-			button.set_enabled((not release_nav_buttons)) #User1 & User2 enabled
+            if self._session is not None:
+                self._session.set_allow_update(True)
+            if self._zooming is not None:
+                self._zooming.set_allow_update(True)
 
-		if drum_rack_mode:#User1 enabled
-			self._config_button.send_value(2)#Set LP drum rack layout grid mapping mode
-		self._config_button.send_value(32)#Send enable flashing led config message to LP
+    def _setup_sub_mode(self, mode: str) -> None:
+        as_active = True
+        as_enabled = True
+        if mode == "instrument":
+            self._control_surface.show_message("INSTRUMENT MODE")
+            self._setup_session(not as_active, not as_enabled)
+            self._setup_step_sequencer(not as_active)
+            self._setup_step_sequencer2(not as_active)
+            self._setup_mixer(not as_active)
+            self._setup_device_controller(not as_active)
+            self._update_control_channels()
+            self._setup_instrument_controller(as_active)
+            self._mode_index = 4
+        elif mode == "melodic stepseq":
+            self._control_surface.show_message("MELODIC SEQUENCER MODE")
+            self._setup_session(not as_active, not as_enabled)
+            self._setup_instrument_controller(not as_active)
+            self._setup_device_controller(not as_active)
+            self._setup_mixer(not as_active)
+            self._setup_step_sequencer(not as_active)
+            self._setup_step_sequencer2(as_active)
+            self._update_control_channels()
+            self._mode_index = 7
+        elif mode == "user 1":
+            self._control_surface.show_message("USER 1 MODE")
+            self._setup_session(not as_active, not as_enabled)
+            self._setup_step_sequencer(not as_active)
+            self._setup_step_sequencer2(not as_active)
+            self._setup_mixer(not as_active)
+            self._setup_device_controller(not as_active)
+            self._setup_instrument_controller(not as_active)
+            self._setup_user_mode(True, True, False, True)
+            self._update_control_channels()
+            self._mode_index = 1
+            self._osd.clear()
+            self._osd.mode = "User 1"
+            self._osd.update()
+        elif mode == "drum stepseq":
+            self._control_surface.show_message("DRUM STEP SEQUENCER MODE")
+            self._setup_session(not as_active, not as_enabled)
+            self._setup_instrument_controller(not as_active)
+            self._setup_device_controller(not as_active)
+            self._setup_mixer(not as_active)
+            self._setup_step_sequencer2(not as_active)
+            self._setup_step_sequencer(as_active)
+            self._update_control_channels()
+            self._mode_index = 6
+        elif mode == "device":
+            self._control_surface.show_message("DEVICE CONTROLLER MODE")
+            self._setup_session(not as_active, not as_enabled)
+            self._setup_step_sequencer(not as_active)
+            self._setup_step_sequencer2(not as_active)
+            self._setup_mixer(not as_active)
+            self._setup_instrument_controller(not as_active)
+            self._setup_device_controller(as_active)
+            self._update_control_channels()
+            self._mode_index = 5
+        elif mode == "user 2":
+            self._control_surface.show_message("USER 2 MODE")
+            self._setup_session(not as_active, not as_enabled)
+            self._setup_instrument_controller(not as_active)
+            self._setup_device_controller(not as_active)
+            self._setup_mixer(not as_active)
+            self._setup_step_sequencer(not as_active)
+            self._setup_step_sequencer2(not as_active)
+            self._setup_user_mode(False, False, False, False)
+            self._update_control_channels()
+            self._mode_index = 2
+            self._osd.clear()
+            self._osd.mode = "User 2"
+            self._osd.update()
 
-	def _setup_step_sequencer(self, as_active: bool) -> None:
-		if(self._stepseq is not None):
-			#if(self._stepseq.is_enabled() != as_active):
-			if as_active:
-				self._activate_scene_buttons(True)
-				self._activate_matrix(True)
-				self._activate_navigation_buttons(True)
-				self._config_button.send_value(32)
-				self._stepseq.set_enabled(True)
-			else:
-				self._stepseq.set_enabled(False)
+    def _setup_session(self, as_active: bool, as_navigation_enabled: bool) -> None:
+        assert isinstance(as_active, type(False))  # assert is boolean
+        if self._nav_buttons is not None:
+            for button in self._nav_buttons:
+                if as_navigation_enabled:
+                    button.set_on_off_values("Mode.Session.On", "Mode.Session.Off")
+                else:
+                    button.set_on_off_values(
+                        "DefaultButton.Disabled", "DefaultButton.Disabled"
+                    )
 
-	def _setup_step_sequencer2(self, as_active: bool) -> None:
-		if(self._stepseq2 is not None):
-			#if(self._stepseq2.is_enabled() != as_active):
-			if as_active:
-				self._activate_scene_buttons(True)
-				self._activate_matrix(True)
-				self._activate_navigation_buttons(True)
-				self._config_button.send_value(32)
-				self._stepseq2.set_enabled(True)
-			else:
-				self._stepseq2.set_enabled(False)
+        # matrix
+        self._activate_matrix(True)
+        self._turn_off_scene_buttons()
 
-	def _setup_mixer(self, as_active: bool) -> None:
-		assert isinstance(as_active, type(False))
-		if as_active:
-			self._activate_navigation_buttons(True)
-			self._activate_scene_buttons(True)
-			self._activate_matrix(True)
-			if(self._sub_modes.is_enabled()):# go back to default mode
-				self._sub_modes.set_mode(-1)
-			else:
-				self._sub_modes.release_controls()
+        if self._session is not None:
+            if (
+                self._matrix is not None
+                and (self._session.height() != self._matrix.height())
+                and (self._aux_scene is not None)
+            ):
+                self._session._scenes.append(self._aux_scene)
 
-		self._sub_modes.set_enabled(as_active)
+            if as_active:
+                self._session._set_pro_mode_on(self._pro_session_on)
+            else:
+                self._session._set_pro_mode_on(False)
 
-	def _init_session(self) -> None:
-		#self._session.set_stop_clip_value("Session.StopClip")
-		#self._session.set_stop_clip_triggered_value("Session.ClipTriggeredStop")
-		
-		session_height = self._matrix.height()
-		#if self._session._stop_clip_buttons != None:
-		#	session_height = self._matrix.height()-1
-	
-		for scene_index in range(session_height):
-		#	scene = self._session.scene(scene_index)
-		#	scene.set_triggered_value("Session.SceneTriggered")
-		#	scene.name = 'Scene_' + str(scene_index)
-			for track_index in range(self._matrix.width()):
-		#		clip_slot = scene.clip_slot(track_index)
-		#		clip_slot.set_triggered_to_play_value("ProSession.ClipTriggeredPlay")
-		#		clip_slot.set_triggered_to_record_value("Session.ClipTriggeredRecord")
-		#		clip_slot.set_stopped_value("ProSession.ClipStopped")
-		#		clip_slot.set_started_value("ProSession.ClipStarted")
-		#		clip_slot.set_recording_value("Session.ClipRecording")
-		#		clip_slot.set_record_button_value("Session.RecordButton")
-		#		clip_slot.name = str(track_index) + '_Clip_Slot_' + str(scene_index)
-				self._all_buttons.append(self._matrix.get_button(track_index, scene_index))
+            for scene_index in range(self._session._num_scenes):  # iterate over scenes
+                scene = self._session.scene(scene_index)
+                if as_active:  # set scene launch buttons
+                    if self._side_buttons is not None:
+                        scene_button = self._side_buttons[scene_index]
+                        scene_button.set_enabled(as_active)
+                    if not self._pro_session_on:
+                        scene.set_launch_button(scene_button)
+                    else:
+                        scene.set_launch_button(None)
+                else:
+                    scene.set_launch_button(None)
 
-		#self._zooming.set_stopped_value("Zooming.Stopped")
-		#self._zooming.set_selected_value("Zooming.Selected")
-		#self._zooming.set_playing_value("Zooming.Playing")	 
+            for track_index in range(
+                self._session._num_tracks
+            ):  # iterate over tracks of a scene -> clip slots
+                if as_active:  # set clip slot launch button
+                    if self._matrix is not None:
+                        button = self._matrix.get_button(track_index, scene_index)
+                        button.set_on_off_values(
+                            "DefaultButton.Disabled", "DefaultButton.Disabled"
+                        )
+                        button.set_enabled(as_active)
+                    clip_slot = scene.clip_slot(track_index)
+                    if not self._pro_session_on:
+                        clip_slot.set_triggered_to_play_value(
+                            "Session.ClipTriggeredPlay"
+                        )
+                        clip_slot.set_stopped_value("Session.ClipStopped")
+                        clip_slot.set_started_value("Session.ClipStarted")
+                        clip_slot.set_launch_button(button)
+                    else:
+                        if (
+                            self._matrix is not None
+                            and scene_index < self._matrix.height() - 1
+                        ):
+                            clip_slot.set_triggered_to_play_value(
+                                "ProSession.ClipTriggeredPlay"
+                            )
+                            clip_slot.set_stopped_value("ProSession.ClipStopped")
+                            clip_slot.set_started_value("ProSession.ClipStarted")
+                            clip_slot.set_launch_button(button)
+                        else:
+                            scene.clip_slot(track_index).set_launch_button(None)
+                else:
+                    scene.clip_slot(track_index).set_launch_button(None)
 
-	def _activate_navigation_buttons(self, active: bool) -> None:
-		for button in self._nav_buttons:
-			button.set_enabled(active)
+            if self._pro_session_on:
+                self._aux_scene = self._session._scenes.pop(-1)
 
-	def _activate_scene_buttons(self, active: bool) -> None:
-		for button in self._side_buttons:
-			button.set_enabled(active)
+            if as_active:  # Set up stop clip buttons and stop all clips button
+                if self._pro_session_on:
+                    if self._clip_stop_buttons is not None:
+                        for button in self._clip_stop_buttons:
+                            button.set_enabled(as_active)
+                            # button.set_on_off_values("Session.StopClip", "DefaultButton.Disabled")
+                            if self._session is not None:
+                                self._session.set_stop_track_clip_buttons(
+                                    self._clip_stop_buttons
+                                )
+                    else:
+                        if self._session is not None:
+                            self._session.set_stop_track_clip_buttons(None)
+                else:
+                    if self._session is not None:
+                        self._session.set_stop_track_clip_buttons(None)
+            else:
+                if self._session is not None:
+                    self._session.set_stop_track_clip_buttons(None)
 
-	def _activate_matrix(self, active: bool) -> None:
-		for scene_index in range(8):
-			for track_index in range(8):
-				self._matrix.get_button(track_index, scene_index).set_enabled(active)
+            if as_active:  # zoom
+                if self._zooming is not None:
+                    self._zooming.set_zoom_button(
+                        self._modes_buttons[0]
+                    )  # Set Session button as zoom shift button
+                    self._zooming.set_button_matrix(self._matrix)
+                    if self._side_buttons is not None:
+                        self._zooming.set_scene_bank_buttons(self._side_buttons)
+                    if self._nav_buttons is not None:
+                        self._zooming.set_nav_buttons(
+                            self._nav_buttons[0],
+                            self._nav_buttons[1],
+                            self._nav_buttons[2],
+                            self._nav_buttons[3],
+                        )
+                    self._zooming.update()
+            else:
+                if self._zooming is not None:
+                    self._zooming.set_zoom_button(None)
+                    self._zooming.set_button_matrix(None)
+                    self._zooming.set_scene_bank_buttons(None)
+                    self._zooming.set_nav_buttons(None, None, None, None)
 
-	def _turn_off_scene_buttons(self) -> None:
-		for side_button in self._side_buttons:
-			side_button.set_on_off_values("DefaultButton.Disabled", "DefaultButton.Disabled")
-			side_button.turn_off()
+            if as_navigation_enabled:  # nav buttons (track/scene)
+                if self._nav_buttons is not None:
+                    self._session.set_track_bank_buttons(
+                        self._nav_buttons[3], self._nav_buttons[2]
+                    )
+                    self._session.set_scene_bank_buttons(
+                        self._nav_buttons[1], self._nav_buttons[0]
+                    )
+            else:
+                self._session.set_track_bank_buttons(None, None)
+                self._session.set_scene_bank_buttons(None, None)
 
-	def log_message(self, msg: str) -> None:
-		self._control_surface.log_message(msg)
+            self._session.set_enabled(as_active)
+            self._session._do_show_highlight()
 
-	def _update_control_channels(self) -> None:
-		new_channel = self.channel_for_current_mode()
-		for button in self._all_buttons:
-			button.set_channel(new_channel)
-			button.force_next_send()
+    def _setup_instrument_controller(self, as_active: bool) -> None:
+        if self._instrument_controller is not None:
+            if as_active:
+                self._activate_matrix(False)  # Disable matrix buttons (clip slots)
+                self._activate_scene_buttons(True)  # Enable side buttons
+                self._activate_navigation_buttons(True)  # Enable nav buttons
+            else:
+                if self._side_buttons is not None:
+                    for scene_index in range(
+                        8
+                    ):  # Restore all matrix buttons and scene launch buttons
+                        scene_button = self._side_buttons[scene_index]
+                        scene_button.use_default_message()  # Reset to original channel
+                        scene_button.force_next_send()  # Flush
+                        for track_index in range(8):
+                            if self._matrix is not None:
+                                button = self._matrix.get_button(
+                                    track_index, scene_index
+                                )
+                                button.use_default_message()  # Reset to original channel
+                                button.force_next_send()  # Flush
+            self._instrument_controller.set_enabled(
+                as_active
+            )  # Enable/disable instrument controller
 
-	#def _update_session_tempo_button(self):
-	#	if self._session != None:
-	#		self._session._update_session_tempo_button()
+    def _setup_device_controller(self, as_active: bool) -> None:
+        if self._device_controller is not None:
+            if as_active:
+                self._activate_scene_buttons(True)
+                self._activate_matrix(True)
+                self._activate_navigation_buttons(True)
+                self._device_controller._is_active = True
+                if self._config_button is not None:
+                    self._config_button.send_value(32)
+                self._device_controller.set_enabled(True)
+                self._device_controller.update()
+            else:
+                self._device_controller._is_active = False
+                self._device_controller.set_enabled(False)
+
+    def _setup_user_mode(
+        self,
+        release_matrix: bool = True,
+        release_side_buttons: bool = True,
+        release_nav_buttons: bool = True,
+        drum_rack_mode: bool = True,
+    ) -> None:
+        # user1 -> All True but release_nav_buttons / user2 -> All false
+        if self._side_buttons is not None:
+            for scene_index in range(8):
+                scene_button = self._side_buttons[scene_index]
+                scene_button.set_on_off_values(
+                    "DefaultButton.Disabled", "DefaultButton.Disabled"
+                )
+                scene_button.force_next_send()
+                scene_button.turn_off()
+                scene_button.set_enabled((not release_side_buttons))  # User2 enabled
+
+                for track_index in range(8):
+                    if self._matrix is not None:
+                        button = self._matrix.get_button(track_index, scene_index)
+                        button.set_on_off_values(
+                            "DefaultButton.Disabled", "DefaultButton.Disabled"
+                        )
+                        button.turn_off()
+                        button.set_enabled((not release_matrix))  # User2 enabled
+
+        if self._nav_buttons is not None:
+            for button in self._nav_buttons:
+                button.set_on_off_values(
+                    "DefaultButton.Disabled", "DefaultButton.Disabled"
+                )
+                button.turn_off()
+                button.set_enabled((not release_nav_buttons))  # User1 & User2 enabled
+
+        if drum_rack_mode:  # User1 enabled
+            if self._config_button is not None:
+                self._config_button.send_value(
+                    2
+                )  # Set LP drum rack layout grid mapping mode
+        if self._config_button is not None:
+            self._config_button.send_value(
+                32
+            )  # Send enable flashing led config message to LP
+
+    def _setup_step_sequencer(self, as_active: bool) -> None:
+        if self._stepseq is not None:
+            # if(self._stepseq.is_enabled() != as_active):
+            if as_active:
+                self._activate_scene_buttons(True)
+                self._activate_matrix(True)
+                self._activate_navigation_buttons(True)
+                if self._config_button is not None:
+                    self._config_button.send_value(32)
+                self._stepseq.set_enabled(True)
+            else:
+                self._stepseq.set_enabled(False)
+
+    def _setup_step_sequencer2(self, as_active: bool) -> None:
+        if self._stepseq2 is not None:
+            # if(self._stepseq2.is_enabled() != as_active):
+            if as_active:
+                self._activate_scene_buttons(True)
+                self._activate_matrix(True)
+                self._activate_navigation_buttons(True)
+                if self._config_button is not None:
+                    self._config_button.send_value(32)
+                self._stepseq2.set_enabled(True)
+            else:
+                self._stepseq2.set_enabled(False)
+
+    def _setup_mixer(self, as_active: bool) -> None:
+        assert isinstance(as_active, type(False))
+        if as_active:
+            self._activate_navigation_buttons(True)
+            self._activate_scene_buttons(True)
+            self._activate_matrix(True)
+            if self._sub_modes.is_enabled():  # go back to default mode
+                self._sub_modes.set_mode(-1)
+            else:
+                self._sub_modes.release_controls()
+
+        self._sub_modes.set_enabled(as_active)
+
+    def _init_session(self) -> None:
+        if self._matrix is None:
+            return
+        # self._session.set_stop_clip_value("Session.StopClip")
+        # self._session.set_stop_clip_triggered_value("Session.ClipTriggeredStop")
+
+        session_height = self._matrix.height()
+        # if self._session._stop_clip_buttons != None:
+        # session_height = self._matrix.height()-1
+
+        for scene_index in range(session_height):
+            # scene = self._session.scene(scene_index)
+            # scene.set_triggered_value("Session.SceneTriggered")
+            # scene.name = 'Scene_' + str(scene_index)
+            for track_index in range(self._matrix.width()):
+                # clip_slot = scene.clip_slot(track_index)
+                # clip_slot.set_triggered_to_play_value("ProSession.ClipTriggeredPlay")
+                # clip_slot.set_triggered_to_record_value("Session.ClipTriggeredRecord")
+                # clip_slot.set_stopped_value("ProSession.ClipStopped")
+                # clip_slot.set_started_value("ProSession.ClipStarted")
+                # clip_slot.set_recording_value("Session.ClipRecording")
+                # clip_slot.set_record_button_value("Session.RecordButton")
+                # clip_slot.name = str(track_index) + '_Clip_Slot_' + str(scene_index)
+                self._all_buttons.append(
+                    self._matrix.get_button(track_index, scene_index)
+                )
+
+        # self._zooming.set_stopped_value("Zooming.Stopped")
+        # self._zooming.set_selected_value("Zooming.Selected")
+        # self._zooming.set_playing_value("Zooming.Playing")
+
+    def _activate_navigation_buttons(self, active: bool) -> None:
+        if self._nav_buttons is not None:
+            for button in self._nav_buttons:
+                button.set_enabled(active)
+
+    def _activate_scene_buttons(self, active: bool) -> None:
+        if self._side_buttons is not None:
+            for button in self._side_buttons:
+                button.set_enabled(active)
+
+    def _activate_matrix(self, active: bool) -> None:
+        if self._matrix is None:
+            return
+        for scene_index in range(8):
+            for track_index in range(8):
+                self._matrix.get_button(track_index, scene_index).set_enabled(active)
+
+    def _turn_off_scene_buttons(self) -> None:
+        if self._side_buttons is not None:
+            for side_button in self._side_buttons:
+                side_button.set_on_off_values(
+                    "DefaultButton.Disabled", "DefaultButton.Disabled"
+                )
+                side_button.turn_off()
+
+    def log_message(self, msg: str) -> None:
+        self._control_surface.log_message(msg)
+
+    def _update_control_channels(self) -> None:
+        new_channel = self.channel_for_current_mode()
+        for button in self._all_buttons:
+            button.set_channel(new_channel)
+            button.force_next_send()
+
+    # def _update_session_tempo_button(self):
+    # if self._session != None:
+    # self._session._update_session_tempo_button()

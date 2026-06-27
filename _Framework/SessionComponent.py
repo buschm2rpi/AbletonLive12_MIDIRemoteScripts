@@ -7,6 +7,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 from builtins import range
 from itertools import count
+from typing import List
 import Live
 from .CompoundComponent import CompoundComponent
 from .SceneComponent import SceneComponent
@@ -16,7 +17,7 @@ from .Util import in_range, product
 
 class SessionComponent(CompoundComponent):
     __subject_events__ = ('offset', )
-    _linked_session_instances = []
+    _linked_session_instances: List["SessionComponent"] = []
     _minimal_track_offset = -1
     _minimal_scene_offset = -1
     _highlighting_callback = None

@@ -1,0 +1,60 @@
+/**
+ * Launchpad95 Type Checks Extension
+ *
+ * Runs syntax, type, and lint checks on the Launchpad95_typed folder
+ * after each agent task completes.
+ */
+
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { execFile } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+export default function launchpadChecksExtension(pi: ExtensionAPI) {
+  const checkScript = join(__dirname, "..", "..", ".claude", "check.sh");
+
+  pi.on("agent_end", async (_event, ctx) => {
+    // Only run in TUI mode, skip in print/rpc modes
+    if (ctx.mode !== "tui") return;
+
+    try {
+      const { exitCode, stdout, stderr } = await new Promise<{
+        exitCode: number;
+        stdout: string;
+        stderr: string;
+      }>((resolve, reject) => {
+        execFile(
+          "bash",
+          [checkScript],
+          {
+            cwd: ctx.cwd,
+            timeout: 120_000, // 2 minute timeout
+          },
+          (error, stdout, stderr) => {
+            if (error) {
+              resolve({ exitCode: error.code ?? 1, stdout, stderr });
+            } else {
+              resolve({ exitCode: 0, stdout, stderr });
+            }
+          }
+        );
+      });
+
+      if (exitCode === 0) {
+        ctx.ui.notify("✅ Launchpad95 checks passed", "success");
+      } else {
+        ctx.ui.notify("❌ Launchpad95 checks failed", "error");
+        // Show the first few lines of stderr for context
+        const preview = stderr.split("\n").slice(0, 5).join("\n");
+        if (preview.trim()) {
+          ctx.ui.notify(preview, "warning");
+        }
+      }
+    } catch (err) {
+      ctx.ui.notify(`Check script error: ${(err as Error).message}`, "error");
+    }
+  });
+}

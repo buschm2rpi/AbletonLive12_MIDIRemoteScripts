@@ -404,7 +404,7 @@ class ExcludingBehaviourMixin(ModeButtonBehaviour):
 
 class _ModeEntry(NamedTuple):
     mode = None
-    groups = set()
+    groups: set = set()
     toggle_value = False
     subject_slot = None
     momentary_task = None

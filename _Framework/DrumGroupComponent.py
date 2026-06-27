@@ -14,7 +14,7 @@ from .Util import clamp, find_if, first
 BASE_DRUM_RACK_NOTE = 36
 
 class DrumGroupComponent(SlideComponent, Slideable):
-    __subject_events__ = ('pressed_pads', )
+    __subject_events__ = ('pressed_pads',)  # type: ignore[assignment]
     mute_button = ButtonControl()
     solo_button = ButtonControl()
     delete_button = ButtonControl()

@@ -4,14 +4,16 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from _Framework import Task
 from _Framework.CompoundComponent import CompoundComponent
+from _Framework.ButtonElement import ButtonElement
 
 if TYPE_CHECKING:
-	from Live.NoteRepeat import NoteRepeat
+    pass
 
 t = 3.0 / 2.0
-NOTE_REPEAT_FREQUENCIES = [4, 4*t, 8, 8*t, 16, 16*t, 32, 32*t]
+NOTE_REPEAT_FREQUENCIES = [4, 4 * t, 8, 8 * t, 16, 16 * t, 32, 32 * t]
 del t
-QUANTIZATION_NAMES = ('1/4', '1/4t', '1/8',  '1/8t', '1/16', '1/16t', '1/32', '1/32t')
+QUANTIZATION_NAMES = ("1/4", "1/4t", "1/8", "1/8t", "1/16", "1/16t", "1/32", "1/32t")
+
 
 class DummyNoteRepeat(object):
     repeat_rate: float = 1.0
@@ -26,7 +28,8 @@ class NoteRepeatComponent(CompoundComponent):
     def __init__(self, *a: Any, **k: Any) -> None:
         super(NoteRepeatComponent, self).__init__(*a, **k)
         self._last_record_quantization: Optional[Any] = None
-        self._note_repeat: Optional[Any] = None
+        self._note_repeat: Any
+        self._note_repeat = None
         self._freq_index: int = 2
         self.set_note_repeat(None)
 
@@ -49,7 +52,7 @@ class NoteRepeatComponent(CompoundComponent):
     def update(self) -> None:
         super(NoteRepeatComponent, self).update()
 
-    def set_select_buttons(self, buttons: Any) -> None:
+    def set_select_buttons(self, buttons: Optional[tuple[ButtonElement, ...]]) -> None:
         self._options.select_buttons.set_control_element(buttons)
 
     def set_note_repeat(self, note_repeat: Optional[Any]) -> None:
@@ -70,7 +73,10 @@ class NoteRepeatComponent(CompoundComponent):
         self._update_note_repeat(enabled=True)
 
     def _disable_note_repeat(self) -> None:
-        if not self.song().midi_recording_quantization and self._last_record_quantization:
+        if (
+            not self.song().midi_recording_quantization
+            and self._last_record_quantization
+        ):
             self._set_recording_quantization(self._last_record_quantization)
         self._update_note_repeat(enabled=False)
 
@@ -82,8 +88,8 @@ class NoteRepeatComponent(CompoundComponent):
 
     def _on_selected_option_changed(self, option: int) -> None:
         frequency = NOTE_REPEAT_FREQUENCIES[option]
-        self._note_repeat.repeat_rate = 1.0 / frequency * 4.0  # type: ignore[union-attr]
+        self._note_repeat.repeat_rate = 1.0 / frequency * 4.0
 
     def _update_note_repeat(self, enabled: bool = False) -> None:
         self._on_selected_option_changed(self._freq_index)
-        self._note_repeat.enabled = self.is_enabled()  # type: ignore[union-attr]
+        self._note_repeat.enabled = self.is_enabled()

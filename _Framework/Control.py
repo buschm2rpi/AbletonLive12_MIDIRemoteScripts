@@ -9,6 +9,7 @@ from builtins import object, range
 from future.moves.itertools import zip_longest
 from past.utils import old_div
 from functools import partial
+from typing import Any, Dict, List
 from ableton.v2.base import old_hasattr
 from . import Task
 from .Defaults import MOMENTARY_DELAY
@@ -113,8 +114,8 @@ class Control(object):
 
         identifier = property(_get_identifier, _set_identifier)
 
-    _extra_kws = {}
-    _extra_args = []
+    _extra_kws: Dict[type, Any] = {}
+    _extra_args: List[Any] = []
 
     def __init__(self, extra_args=None, extra_kws=None, *a, **k):
         (super(Control, self).__init__)(*a, **k)
@@ -600,8 +601,8 @@ class ControlList(Control):
     DYNAMIC_CONTROL_COUNT = _DYNAMIC_CONTROL_COUNT
 
     class State(Control.State):
-        _extra_kws = {}
-        _extra_args = []
+        _extra_kws: Dict[type, Any] = {}
+        _extra_args: List[Any] = []
 
         def __init__(self, control=None, manager=None, extra_args=None, extra_kws=None, unavailable_color=None, *a, **k):
             (super(ControlList.State, self).__init__)(a, manager=manager, control=control, **k)
@@ -793,8 +794,8 @@ class MatrixControl(ControlList):
         (super(MatrixControl, self).__init__)(*a, **k)
 
 
-_control_list_classes = dict()
-_control_matrix_classes = dict()
+_control_list_classes: Dict[type, Any] = {}
+_control_matrix_classes: Dict[type, Any] = {}
 
 def control_list(control_type, *a, **k):
     if control_type == RadioButtonControl:

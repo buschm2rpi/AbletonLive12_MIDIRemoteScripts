@@ -266,7 +266,9 @@ class DeviceComponent(ControlSurfaceComponent, Subject):
         if not self._lock_button.is_momentary() or value != 0:
             self._lock_callback()
 
-    def _on_off_valueParse error at or near `COME_FROM' instruction at offset 60_1
+    def _on_off_value(self, value):
+        if not self._on_off_button.is_momentary() or value != 0:
+            self.set_enabled(not self.is_enabled())
 
     @subject_slot_group("value")
     def _on_bank_value(self, value, button):

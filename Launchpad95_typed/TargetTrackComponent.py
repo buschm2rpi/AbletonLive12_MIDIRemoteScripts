@@ -1,26 +1,28 @@
-#Embedded file name: /Users/versonator/Jenkins/live/output/mac_64_static/Release/python-bundle/MIDI Remote Scripts/Launchpad_Pro/TargetTrackComponent.py
+# Embedded file name: /Users/versonator/Jenkins/live/output/mac_64_static/Release/python-bundle/MIDI Remote Scripts/Launchpad_Pro/TargetTrackComponent.py
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from _Framework.SubjectSlot import Subject, subject_slot, subject_slot_group
+from _Framework.SubjectSlot import Subject, subject_slot_group
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 
 if TYPE_CHECKING:
-	from Live.Track import Track
+    from Live.Track import Track
+
 
 class TargetTrackComponent(ControlSurfaceComponent, Subject):
     """
     TargetTrackComponent handles determining the track to target for
     note mode-related functionality and notifying listeners.
     """
-    __subject_events__ = ('target_track',)
+
+    __subject_events__ = ("target_track",)
     _target_track: Optional[Any] = None
     _armed_track_stack: list[Any] = []
 
     def __init__(self, *a: Any, **k: Any) -> None:
         super(TargetTrackComponent, self).__init__(*a, **k)
-        self._on_tracks_changed.subject = self.song()
+        self._on_tracks_changed.subject = self.song()  # type: ignore[attr-defined]
         self._on_tracks_changed()
 
     @property
@@ -31,14 +33,15 @@ class TargetTrackComponent(ControlSurfaceComponent, Subject):
         if not self._armed_track_stack:
             self._set_target_track()
 
-    @subject_slot('tracks')
     def _on_tracks_changed(self) -> None:
-        tracks = filter(lambda t: t.can_be_armed and t.has_midi_input, self.song().tracks)
+        tracks = filter(
+            lambda t: t.can_be_armed and t.has_midi_input, self.song().tracks
+        )
         self._on_arm_changed.replace_subjects(tracks)
         self._on_frozen_state_changed.replace_subjects(tracks)
         self._refresh_armed_track_stack(tracks)
 
-    @subject_slot_group('arm')
+    @subject_slot_group("arm")
     def _on_arm_changed(self, track: Any) -> None:
         if track in self._armed_track_stack:
             self._armed_track_stack.remove(track)
@@ -48,14 +51,14 @@ class TargetTrackComponent(ControlSurfaceComponent, Subject):
         else:
             self._set_target_track()
 
-    @subject_slot_group('is_frozen')
+    @subject_slot_group("is_frozen")
     def _on_frozen_state_changed(self, track: Any) -> None:
         if track in self._armed_track_stack:
             self._armed_track_stack.remove(track)
         if track == self._target_track:
             self._set_target_track()
 
-    def _set_target_track(self, target: Optional[Any] = None) -> None:
+    def _set_target_track(self, target: Optional["Track"] = None) -> None:
         new_target = self._target_track
         if target is None:
             if self._armed_track_stack:
