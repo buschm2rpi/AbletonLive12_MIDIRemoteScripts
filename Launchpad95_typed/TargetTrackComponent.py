@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from _Framework.SubjectSlot import Subject, subject_slot_group
+from _Framework.SubjectSlot import Subject, subject_slot, subject_slot_group
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 
 if TYPE_CHECKING:
@@ -22,7 +22,7 @@ class TargetTrackComponent(ControlSurfaceComponent, Subject):
 
     def __init__(self, *a: Any, **k: Any) -> None:
         super(TargetTrackComponent, self).__init__(*a, **k)
-        self._on_tracks_changed.subject = self.song()  # type: ignore[attr-defined]
+        self._on_tracks_changed.subject = self.song()
         self._on_tracks_changed()
 
     @property
@@ -32,7 +32,8 @@ class TargetTrackComponent(ControlSurfaceComponent, Subject):
     def on_selected_track_changed(self) -> None:
         if not self._armed_track_stack:
             self._set_target_track()
-
+    
+    @subject_slot('tracks')
     def _on_tracks_changed(self) -> None:
         tracks = filter(
             lambda t: t.can_be_armed and t.has_midi_input, self.song().tracks

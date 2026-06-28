@@ -7,7 +7,7 @@ from _Framework.SubjectSlot import SlotManager
 
 
 class ButtonSliderElement(SliderElement, SlotManager):
-    _last_sent_value: int
+    _last_sent_value: int = -1
     _buttons: Optional[Tuple[Any, ...]]
 
     def __init__(self, buttons: Tuple[Any, ...]) -> None:

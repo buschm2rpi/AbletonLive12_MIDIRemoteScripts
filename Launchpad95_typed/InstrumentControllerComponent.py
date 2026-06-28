@@ -583,7 +583,7 @@ class InstrumentControllerComponent(CompoundComponent):
                 self._osd.mode = "Instrument (quick scale)"
             else:
                 self._osd.mode = "Instrument"
-            self._osd.attributes[0] = MUSICAL_MODES[self._scales._modus * 2]
+            self._osd.attributes[0] = MUSICAL_MODES[self._scales._modus][1]
             self._osd.attribute_names[0] = "Scale"
             self._osd.attributes[1] = KEY_NAMES[self._scales._key % 12]
             self._osd.attribute_names[1] = "Root Note"

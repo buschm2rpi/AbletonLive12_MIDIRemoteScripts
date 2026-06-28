@@ -970,7 +970,7 @@ class StepSequencerComponent2(StepSequencerComponent):
         if self._osd is not None:
             self._osd.set_mode("Melodic Step Sequencer")
             if self._clip is not None and self._scale_selector is not None:
-                self._osd.attributes[0] = MUSICAL_MODES[self._scale_selector._modus * 2]
+                self._osd.attributes[0] = MUSICAL_MODES[self._scale_selector._modus][1]
                 self._osd.attribute_names[0] = "Scale"
                 self._osd.attributes[1] = KEY_NAMES[self._scale_selector._key % 12]
                 self._osd.attribute_names[1] = "Root Note"

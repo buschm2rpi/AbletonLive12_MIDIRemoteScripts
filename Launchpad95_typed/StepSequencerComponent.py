@@ -239,7 +239,7 @@ class StepSequencerComponent(CompoundComponent):
                 self._osd.set_mode("Drum Step Sequencer")
 
             if self._clip is not None and self._scale_selector is not None:
-                self._osd.attributes[0] = MUSICAL_MODES[self._scale_selector._modus * 2]
+                self._osd.attributes[0] = MUSICAL_MODES[self._scale_selector._modus][1]
                 self._osd.attribute_names[0] = "Scale"
                 self._osd.attributes[1] = KEY_NAMES[self._scale_selector._key % 12]
                 self._osd.attribute_names[1] = "Root Note"

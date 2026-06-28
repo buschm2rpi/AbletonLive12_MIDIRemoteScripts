@@ -34,6 +34,7 @@ class ScaleComponent(ControlSurfaceComponent):
         **k: Any,
     ) -> None:
         self._layout_set: bool = False
+        self._modus_list = [Modus(name, notes) for name, notes in MUSICAL_MODES]
         self._control_surface = control_surface
         self._osd: Any = None
         self._modus: int = 0
@@ -184,7 +185,7 @@ class ScaleComponent(ControlSurfaceComponent):
         if self._osd is not None:
             self._osd.attributes[0] = ""
             self._osd.attribute_names[0] = ""
-            self._osd.attributes[1] = MUSICAL_MODES[self._modus * 2]
+            self._osd.attributes[1] = MUSICAL_MODES[self._modus][1]
             self._osd.attribute_names[1] = "Scale"
             self._osd.attributes[2] = KEY_NAMES[self._key % 12]
             self._osd.attribute_names[2] = "Root Note"
