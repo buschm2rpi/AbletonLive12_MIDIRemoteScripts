@@ -455,12 +455,11 @@ except ImportError as err:
     try:
         pass
     finally:
-        err = None
+        err = None  # type: ignore[assignment]
         del err
 
 def run(func, *a, **k):
-    return FuncTask((lambda t:     if func(*a, **k):
-None # Avoid dead code: None))
+    return FuncTask((lambda t: func(*a, **k)))
 
 
 def repeat(task):

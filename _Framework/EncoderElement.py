@@ -18,12 +18,10 @@ def _not_implemented(value):
 
 
 _map_modes = map_modes = Live.MidiMap.MapMode
-ENCODER_VALUE_NORMALIZER = {(_map_modes.relative_smooth_two_compliment): (lambda v:                                               if v <= 64:
-v # Avoid dead code: v - 128), 
- 
- (_map_modes.relative_smooth_signed_bit): (lambda v:                                           if v <= 64:
-v # Avoid dead code: 64 - v), 
- 
+ENCODER_VALUE_NORMALIZER = {(_map_modes.relative_smooth_two_compliment): (lambda v: v - 128 if v > 64 else v),
+
+ (_map_modes.relative_smooth_signed_bit): (lambda v: 64 - v if v > 64 else v),
+
  (_map_modes.relative_smooth_binary_offset): (lambda v: v - 64)}
 MAX_14_BIT_CC = 95
 
@@ -69,7 +67,7 @@ class TouchEncoderElementBase(EncoderElement):
         remove_touch_value_listener = nop
         touch_value_has_listener = nop
 
-    __subject_events__ = ('touch_value', )
+    __subject_events__ = (SubjectEvent(name="touch_value"),)
 
     def is_pressed(self):
         raise NotImplementedError

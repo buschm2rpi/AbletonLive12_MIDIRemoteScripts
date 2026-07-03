@@ -62,8 +62,7 @@ def slice_size(slice, width):
 
 
 def maybe(fn):
-    return (lambda x:     if x is not None:
-fn(x) # Avoid dead code: None)
+    return (lambda x: fn(x) if x is not None else None)
 
 
 def memoize(function):

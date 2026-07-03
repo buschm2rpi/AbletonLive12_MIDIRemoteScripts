@@ -15,7 +15,7 @@ from .InputControlElement import ParameterSlot
 from .NotifyingControlElement import NotifyingControlElement
 from .Proxy import ProxyBase
 from .Resource import DEFAULT_PRIORITY
-from .SubjectSlot import SlotManager, Subject, subject_slot
+from .SubjectSlot import SlotManager, Subject, SubjectEvent, subject_slot
 from .Util import const, find_if, lazy_attribute, nop
 
 class WrapperElement(CompoundElement, ProxyBase):
@@ -174,7 +174,7 @@ class EventElement(NotifyingControlElement, SlotManager, ProxyBase, ButtonElemen
 
 
 class DoublePressContext(Subject):
-    __subject_events__ = ('break_double_press', )
+    __subject_events__ = (SubjectEvent(name="break_double_press"),)
 
     @contextmanager
     def breaking_double_press(self):
@@ -191,7 +191,7 @@ class DoublePressContext(Subject):
 GLOBAL_DOUBLE_PRESS_CONTEXT_PROVIDER = const(DoublePressContext())
 
 class DoublePressElement(WrapperElement):
-    __subject_events__ = ('single_press', 'double_press')
+    __subject_events__ = ('single_press', 'double_press')  # type: ignore[assignment]
     DOUBLE_PRESS_MAX_DELAY = Defaults.MOMENTARY_DELAY
 
     @depends(double_press_context=GLOBAL_DOUBLE_PRESS_CONTEXT_PROVIDER)

@@ -14,10 +14,10 @@ DEFAULT_PRIORITY = 0
 class Resource(object):
 
     def grab(self, client, *a, **k):
-        raise NotImplemented
+        raise NotImplementedError
 
     def release(self, client):
-        raise NotImplemented
+        raise NotImplementedError
 
     def get_owner(self):
         raise NotImplementedError
@@ -90,10 +90,10 @@ class ExclusiveResource(Resource):
         return self._owner
 
     def on_received(self, client, *a, **k):
-        raise NotImplemented("Override or pass callback")
+        raise NotImplementedError("Override or pass callback")
 
     def on_lost(self, client):
-        raise NotImplemented("Override or pass callback")
+        raise NotImplementedError("Override or pass callback")
 
 
 class SharedResource(Resource):
@@ -125,10 +125,10 @@ class SharedResource(Resource):
         pass
 
     def on_received(self, client, *a, **k):
-        raise NotImplemented("Override or pass callback")
+        raise NotImplementedError("Override or pass callback")
 
     def on_lost(self, client):
-        raise NotImplemented("Override or pass callback")
+        raise NotImplementedError("Override or pass callback")
 
 
 class StackingResource(Resource):
@@ -215,10 +215,10 @@ class StackingResource(Resource):
         return self._owners
 
     def on_received(self, client):
-        raise NotImplemented("Override or pass callback")
+        raise NotImplementedError("Override or pass callback")
 
     def on_lost(self, client):
-        raise NotImplemented("Override or pass callback")
+        raise NotImplementedError("Override or pass callback")
 
     def release_stacked(self):
         clients = self.clients

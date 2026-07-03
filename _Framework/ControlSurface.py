@@ -513,7 +513,8 @@ class ControlSurface(Subject, SlotManager):
 
         return success
 
-    def _translate_messageParse error at or near `COME_FROM' instruction at offset 56_1
+    def _translate_message(self, msg_type, delta, value, note, channel):
+        self._c_instance.send_sysex(self._c_instance._translate_sysex_payload(msg_type, delta, value, note, channel))
 
     def _set_session_highlight(self, track_offset, scene_offset, width, height, include_return_tracks):
         if list((track_offset, scene_offset, width, height)).count(-1) != 4:

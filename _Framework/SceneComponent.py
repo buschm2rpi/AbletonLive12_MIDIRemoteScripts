@@ -99,7 +99,8 @@ class SceneComponent(CompoundComponent):
                     clip_index = real_offset
                 for slot in self._clip_slots:
                     while len(tracks) > clip_index:
-                        tracks[clip_index].is_visible or clip_index += 1
+                        if not tracks[clip_index].is_visible:
+                            clip_index += 1
 
                     if len(clip_slots) > clip_index:
                         slot.set_clip_slot(clip_slots[clip_index])
