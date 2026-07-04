@@ -7,7 +7,7 @@ class Blink(Color):
 
     def draw(self, interface):
         interface.send_value(0)
-        interface.send_value(self.midi_value, channel=1)
+        interface.send_value(self.midi_value)
 
 
 class Pulse(Color):
@@ -16,7 +16,7 @@ class Pulse(Color):
 
     def draw(self, interface):
         interface.send_value(0)
-        interface.send_value(self.midi_value, channel=2)
+        interface.send_value(self.midi_value)
 
 
 class Rgb:

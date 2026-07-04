@@ -93,14 +93,15 @@ class ConfigurableButtonElement(ButtonElement):
         except SkinColorMissingError:
             super(ButtonElement, self).set_light(value)
 
-    def send_value(self, value: Any, force: Any = None, channel: Any = None) -> Any:
+    def send_value(self, value: Any, force: Any = None) -> Any:
+        channel = None
         if value is ON_VALUE:
             self._do_send_on_value(channel=channel)
         elif value is OFF_VALUE:
             self._do_send_off_value(channel=channel)
         elif type(value) is int:
             super(ConfigurableButtonElement, self).send_value(
-                value, force=force, channel=channel
+                value, force=force
             )
         else:
             self._draw_skin(value)

@@ -646,7 +646,7 @@ class StepSequencerComponent(CompoundComponent):
         ):
             if self._clip is None or self._clip != self._clip_slot.clip:
                 # unlink
-                if self._clip is not None and self._clip.is_midi_clip:
+                if self._clip is not None and isinstance(self._clip, Live.MidiClip):
                     if self._clip.notes_has_listener(self._on_notes_changed):
                         self._clip.remove_notes_listener(self._on_notes_changed)
                     if self._clip.playing_status_has_listener(

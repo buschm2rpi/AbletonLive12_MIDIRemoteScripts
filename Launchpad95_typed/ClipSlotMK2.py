@@ -20,7 +20,7 @@ class ClipSlotMK2(ClipSlotComponent):
                 elif in_range(value_to_send["value"], 0, 128):
                     button.force_next_send()
                     button.send_value(
-                        value_to_send["value"], channel=value_to_send["channel"]
+                        value_to_send["value"]
                     )
                 else:
                     button.force_next_send()

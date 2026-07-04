@@ -29,6 +29,7 @@ class TrackControllerComponent(MixerComponent):
         self._start_stop_button: Optional[ButtonElement] = None
         self._lock_button: Optional[ButtonElement] = None
         self._locked_to_track: bool = False
+        self._long_press: int = 500
         self._session_record_button: Optional[ButtonElement] = None
         self._mute_button: Optional[ButtonElement] = None
         self._solo_button: Optional[ButtonElement] = None
@@ -51,7 +52,6 @@ class TrackControllerComponent(MixerComponent):
         self._last_undo_button_press: int = now
         self._last_solo_button_press: int = now
         self._last_start_stop_button_press: int = now
-        self._long_press: int = 500
 
     def disconnect(self) -> None:
         self.set_prev_scene_button(None)
