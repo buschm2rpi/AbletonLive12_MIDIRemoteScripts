@@ -1,11 +1,11 @@
 import os
-from .Settings import Settings
+from datetime import datetime
 
-USER_HOME = os.path.expanduser('~')
-LOG_DIRECTORY = USER_HOME+"/Documents/Ableton/User Library/Remote Scripts"
+LOGGING=True
+LOG_DIRECTORY = "/tmp/Launchpad95_typed"
 LOG_FILE = LOG_DIRECTORY + "/log.txt"
 
-if Settings.LOGGING:
+if LOGGING:
     try:
         os.makedirs(LOG_DIRECTORY, exist_ok=True)
     except TypeError:
@@ -20,10 +20,9 @@ if Settings.LOGGING:
 log_num = 0
 
 def log(message):
-    global log_num
-    if Settings.LOGGING:
+    if LOGGING:
         with open(LOG_FILE, 'a') as f:
-            if isinstance(message, list):
+            if type(message) == list:
                 message = '\n'.join(message)
-            f.write(str(log_num) + ' ' + str(message) + '\n')
-        log_num += 1
+            dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            f.write(str(dt) + ' ' + str(message) + '\n')
