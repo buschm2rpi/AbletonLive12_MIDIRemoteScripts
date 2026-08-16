@@ -49,8 +49,8 @@ class Launchpad(ControlSurface):
 
 	_active_instances = []
 	
-	def __init__(self, c_instance):
-		ControlSurface.__init__(self, c_instance)
+	def __init__(self, *a, **k):
+		ControlSurface.__init__(self, *a, **k)
 		live = Live.Application.get_application()
 		self._live_major_version = live.get_major_version()
 		self._live_minor_version = live.get_minor_version()
