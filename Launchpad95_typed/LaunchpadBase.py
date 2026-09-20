@@ -45,7 +45,7 @@ STANDALONE_MODE = 0
 STD_MSG_HEADER = (SYSEX_START,) + NOVATION_MANUFACTURER_ID + (2, )
 
 
-class Launchpad(ControlSurface):
+class LaunchpadBase(ControlSurface):
 
 	_active_instances = []
 	
@@ -71,7 +71,8 @@ class Launchpad(ControlSurface):
 			self._challenge = Live.Application.get_random_int(0, 400000000) & 2139062143
 			self._init_done = False
 		# caller will send challenge and we will continue as challenge is received.
-
+		
+	'''	
 	def init(self):
 		#skip init if already done.
 		if self._init_done:
@@ -171,7 +172,9 @@ class Launchpad(ControlSurface):
 				self.log_message("LaunchPad95 (mk2) Loaded !")
 			else:
 				self.log_message("LaunchPad95 (classic) Loaded !")
+	'''
 
+	'''		
 	def disconnect(self):
 		self._suppress_send_midi = True
 		for control in self.controls:
@@ -201,13 +204,14 @@ class Launchpad(ControlSurface):
 		if self._user_byte_write_button is not None:
 			self._user_byte_write_button.send_value(0)
 			self._user_byte_write_button = None
+	'''
 
 	def _combine_active_instances():
 		support_devices = False
-		for instance in Launchpad._active_instances:
+		for instance in LaunchpadBase._active_instances:
 			support_devices |= (instance._device_component is not None)
 		offset = 0
-		for instance in Launchpad._active_instances:
+		for instance in LaunchpadBase._active_instances:
 			instance._activate_combination_mode(offset, support_devices)
 			offset += instance._selector._session.width()
 
@@ -220,23 +224,24 @@ class Launchpad(ControlSurface):
 			self._selector._session.link_with_track_offset(track_offset)
 
 	def _do_combine(self):
-		if (DO_COMBINE and (self not in Launchpad._active_instances)):
-			Launchpad._active_instances.append(self)
-			Launchpad._combine_active_instances()
+		if (DO_COMBINE and (self not in LaunchpadBase._active_instances)):
+			LaunchpadBase._active_instances.append(self)
+			LaunchpadBase._combine_active_instances()
 
 	def _do_uncombine(self):
-		if self in Launchpad._active_instances:
-			Launchpad._active_instances.remove(self)
+		if self in LaunchpadBase._active_instances:
+			LaunchpadBase._active_instances.remove(self)
 			if(Settings.SESSION__LINK):
 				self._selector._session.unlink()
 			if(Settings.STEPSEQ__LINK_WITH_SESSION):
 				self._selector._stepseq.unlink()
-			Launchpad._combine_active_instances()
+			LaunchpadBase._combine_active_instances()
 
 	def refresh_state(self):
 		ControlSurface.refresh_state(self)
 		self.schedule_message(5, self._update_hardware)
 
+	'''
 	def handle_sysex(self, midi_bytes):
 		if len(midi_bytes) >= 10 and midi_bytes[:8] == (240, 126, 0, 6, 2, 0, 32, 41): #0,32,41=novation
 			if len(midi_bytes) >= 12 and midi_bytes[8:10] == (19,1):
@@ -287,6 +292,8 @@ class Launchpad(ControlSurface):
 				self.set_enabled(True)
 		else:
 			ControlSurface.handle_sysex(self,midi_bytes)
+	'''
+		
 
 	def build_midi_map(self, midi_map_handle):
 		ControlSurface.build_midi_map(self, midi_map_handle)
@@ -319,6 +326,7 @@ class Launchpad(ControlSurface):
 		self._suppress_send_midi = False
 		self._send_challenge()
 
+	'''
 	def _send_challenge(self):
 		# send challenge for all models to allow to detect which one is actually plugged
 		# mk3 and LPX
@@ -330,6 +338,7 @@ class Launchpad(ControlSurface):
 		for index in range(4):
 			challenge_byte = self._challenge >> 8 * index & 127
 			self._send_midi((176, 17 + index, challenge_byte))
+	'''
 
 	def _user_byte_value(self, value):
 		assert (value in range(128))
