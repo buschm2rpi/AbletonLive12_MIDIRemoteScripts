@@ -123,9 +123,9 @@ class InstrumentControllerComponent(CompoundComponent):
 					
 	def _set_feedback_velocity(self):
 		if self.song().session_record:
-			self._control_surface._c_instance.set_feedback_velocity(self._recordind_feedback_velocity)
+			self._control_surface.host_api.set_feedback_velocity(self._recordind_feedback_velocity)
 		else:
-			self._control_surface._c_instance.set_feedback_velocity(self._normal_feedback_velocity)
+			self._control_surface.host_api.set_feedback_velocity(self._normal_feedback_velocity)
 
 	@subject_slot('session_record')
 	def _on_session_record_changed(self):
