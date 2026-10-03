@@ -5,12 +5,18 @@ from _Framework.ControlSurface import ControlSurface
 from _Framework.InputControlElement import MIDI_CC_TYPE, MIDI_NOTE_TYPE
 from _Framework.ButtonElement import ButtonElement
 from _Framework.ButtonMatrixElement import ButtonMatrixElement
-from .ConfigurableButtonElement import ConfigurableButtonElement
-from .MainSelectorComponent import MainSelectorComponent
-from .NoteRepeatComponent import NoteRepeatComponent
-from .M4LInterface import M4LInterface
-from .Log import log
-from .Settings import Settings
+from Launchpad95_typed.ConfigurableButtonElement import ConfigurableButtonElement
+from Launchpad95_typed.MainSelectorComponent import MainSelectorComponent
+from Launchpad95_typed.NoteRepeatComponent import NoteRepeatComponent
+from Launchpad95_typed.M4LInterface import M4LInterface
+from Launchpad95_typed.Log import log
+from Launchpad95_typed.Settings import Settings
+import typing
+
+# This only needs to work for python >= 3.11
+if typing.TYPE_CHECKING:
+    from Launchpad95_typed.contracts import HostApi
+
 
 DO_COMBINE = Live.Application.combine_apcs()  # requires 8.2 & higher
 
@@ -48,6 +54,12 @@ STD_MSG_HEADER = (SYSEX_START,) + NOVATION_MANUFACTURER_ID + (2, )
 class LaunchpadBase(ControlSurface):
 
 	_active_instances = []
+
+	@property
+	def host_api(self) -> "HostApi":
+		"""The Ableton host object (Live.MidiRemoteScript) — the single seam
+		between our code and Live. Typed against the HostApi contract."""
+		return self._c_instance
 	
 	def __init__(self, *a, **k):
 		ControlSurface.__init__(self, *a, **k)

@@ -6,7 +6,7 @@ from _Framework.InputControlElement import MIDI_CC_TYPE, MIDI_NOTE_TYPE
 from _Framework.ButtonElement import ButtonElement
 from _Framework.ButtonMatrixElement import ButtonMatrixElement
 from Launchpad95_typed.ConfigurableButtonElement import ConfigurableButtonElement
-from Launchpad95_typed.LaunchpadBase import LaunchpadBase
+from Launchpad95_MK2.LaunchpadBase import LaunchpadBase
 from Launchpad95_typed.Log import log
 from Launchpad95_typed.MainSelectorComponent import MainSelectorComponent
 from Launchpad95_typed.M4LInterface import M4LInterface

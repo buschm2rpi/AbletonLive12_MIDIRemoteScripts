@@ -14,12 +14,21 @@ from .SpecialProSessionComponent import SpecialProSessionComponent
 import time
 from .Settings import Settings
 
+import typing
+
+# "Type-checking only" guard. Mirrors typing.TYPE_CHECKING (False at runtime)
+# via getattr so it also works on Python < 3.8, where the attribute is absent.
+_TYPE_CHECKING = getattr(typing, "TYPE_CHECKING", False)
+
+if _TYPE_CHECKING:
+    from .contracts import HostApi
+
 class MainSelectorComponent(ModeSelectorComponent):
 
 	""" Class that reassigns the button on the launchpad to different functions """
 
 
-	def __init__(self, matrix, top_buttons, side_buttons, config_button, osd, control_surface, note_repeat, c_instance):
+	def __init__(self, matrix, top_buttons, side_buttons, config_button, osd, control_surface, note_repeat, host_api: "HostApi"):
 		#verify matrix dimentions
 		assert isinstance(matrix, ButtonMatrixElement)
 		assert ((matrix.width() == 8) and (matrix.height() == 8))
@@ -40,7 +49,7 @@ class MainSelectorComponent(ModeSelectorComponent):
 		self._osd = osd
 		self._control_surface = control_surface
 		self._note_repeat = note_repeat
-		self._c_instance = c_instance
+		self._host_api = host_api
 		self._pro_session_on = False
 		self._long_press = 500
 		self._last_session_mode_button_press = int(round(time.time() * 1000))
@@ -63,7 +72,7 @@ class MainSelectorComponent(ModeSelectorComponent):
 		self._clip_stop_buttons = [] 
 		for column in range(8):
 			self._clip_stop_buttons.append(matrix.get_button(column,matrix.height()-1))
-		self._session = SpecialProSessionComponent(matrix.width(), matrix.height(), None, self._side_buttons, self._control_surface, self, self._c_instance.song())
+		self._session = SpecialProSessionComponent(matrix.width(), matrix.height(), None, self._side_buttons, self._control_surface, self, self._host_api.song())
 						
 			
 		#initialize _session variables	

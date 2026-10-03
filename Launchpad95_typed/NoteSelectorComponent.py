@@ -187,7 +187,7 @@ class NoteSelectorComponent(ControlSurfaceComponent):
             self._step_sequencer._track_controller._do_implicit_arm(self._is_velocity_shifted and not self._step_sequencer._is_locked)
             if self._is_velocity_shifted and not self._step_sequencer._is_locked:
                 self._control_surface.set_feedback_channels([11]) # WHY USE Channel 12 to play the notes???
-                self._control_surface._c_instance.set_feedback_velocity(int(self._control_surface._skin['Note.Feedback'])) # What is this???
+                self._control_surface.host_api.set_feedback_velocity(int(self._control_surface._skin['Note.Feedback'])) # What is this???
                 self._was_velocity_shifted = True
             elif self.is_drumrack and self._was_velocity_shifted:
                 self._was_velocity_shifted = False

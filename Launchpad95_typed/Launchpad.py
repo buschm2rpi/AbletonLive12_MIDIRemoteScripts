@@ -12,6 +12,15 @@ from .M4LInterface import M4LInterface
 from .Log import log
 from .Settings import Settings
 
+import typing
+
+# "Type-checking only" guard. Mirrors typing.TYPE_CHECKING (False at runtime)
+# via getattr so it also works on Python < 3.8, where the attribute is absent.
+_TYPE_CHECKING = getattr(typing, "TYPE_CHECKING", False)
+
+if _TYPE_CHECKING:
+    from .contracts import HostApi
+
 DO_COMBINE = Live.Application.combine_apcs()  # requires 8.2 & higher
 
 
@@ -48,6 +57,12 @@ STD_MSG_HEADER = (SYSEX_START,) + NOVATION_MANUFACTURER_ID + (2, )
 class Launchpad(ControlSurface):
 
 	_active_instances = []
+
+	@property
+	def host_api(self) -> "HostApi":
+		"""The Ableton host object (Live.MidiRemoteScript) — the single seam
+		between our code and Live. Typed against the HostApi contract."""
+		return self._c_instance
 	
 	def __init__(self, *a, **k):
 		ControlSurface.__init__(self, *a, **k)
