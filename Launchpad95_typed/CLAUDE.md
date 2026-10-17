@@ -51,7 +51,7 @@ The script uses a 3-tier mode selector architecture:
 
 ## Development Notes
 
-- **No test framework**: This is an Ableton Live remote script that runs inside Ableton's Python environment. There are no unit tests — testing requires Ableton Live and physical Launchpad hardware.
+- **Tests:** `Launchpad95_typed/tests/` is a fake-environment pytest suite that runs **outside** Live (fakes for `Live` + `_Framework`; no production-code imports of either). Run from the worktree root: `.venv/bin/python -m pytest Launchpad95_typed/tests/` (the system `python3` has no pytest). Execution notes: `Launchpad95_typed/plan_phase3_tests.md`.
 - **Python 2/3 compatibility**: The code uses `from __future__ import with_statement`, `xrange` polyfill, and `imap` polyfill.
 - **Ableton _Framework**: All components inherit from Ableton's `_Framework` base classes (`ControlSurface`, `ModeSelectorComponent`, `SessionComponent`, `MixerComponent`, `DeviceComponent`, `CompoundComponent`, `ControlSurfaceComponent`). These are provided by Ableton Live at runtime and are not importable externally.
 - **Installation**: Place the `Launchpad95_typed` folder in `~/Documents/Ableton/User Library/Remote Scripts/`.

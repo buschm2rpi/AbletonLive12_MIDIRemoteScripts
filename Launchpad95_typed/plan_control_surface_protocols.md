@@ -1,7 +1,7 @@
 # Plan: Protocol Interfaces for ControlSurface Construction
 
-**Status:** Proposal — not yet implemented.
-**Companion docs:** `CLAUDE.md` (project overview), `plan_type_hinting.md` (type-hinting rollout).
+**Status:** Phase 3 complete (execution notes and deviations: `plan_phase3_tests.md`). Phases 0–1 complete; Phase 2 partial (`HostApi` typed in `Launchpad.py` / `MainSelectorComponent.py`; `ControlSurfaceFacade` not yet wired); Phase 4 optional, not started.
+**Companion docs:** `CLAUDE.md` (project overview), `plan_type_hinting.md` (type-hinting rollout), `plan_phase3_tests.md` (Phase 3 execution plan).
 **Audience:** Any sub-agent or engineer picking up work on this repo. This document is self-contained; no prior conversation context is required.
 
 ---
@@ -385,11 +385,15 @@ no changes to `__init__.py` capabilities, no behavior changes.
 - **Acceptance:** type checker passes from the worktree root; runtime diff is empty.
 - **Rationale:** the contract becomes enforced instead of documented-in-comments.
 
-### Phase 3 — fakes + first tests
+### Phase 3 — fakes + first tests — **DONE**
 - Add `Launchpad95_typed/tests/` (`__init__.py`, `fakes.py`, first test modules).
 - First candidates (pure logic, no MIDI needed): `MainSelectorComponent` mode
   transitions, `ScaleComponent` scale computation, `SkinMK1`/`SkinMK2` color mapping.
 - **Acceptance:** `python3 -m pytest Launchpad95_typed/tests/` runs **outside** Live.
+  (The system `python3` has no pytest; the acceptance command in practice is
+  `.venv/bin/python -m pytest Launchpad95_typed/tests/` from the worktree root —
+  129 tests, ~5 s, clean exit. Full execution notes and deviations:
+  `plan_phase3_tests.md`.)
 - **Note for installers:** Ableton only imports the remote script's top-level
   `__init__.py` and its import graph; `tests/` is never imported in Live and is inert.
   Optionally exclude `tests/` when copying the folder to
@@ -444,7 +448,8 @@ no changes to `__init__.py` capabilities, no behavior changes.
   what the current (3.11-era) Live ships. Treat them as reference for *structure
   and intent*; when runtime behavior is in question, verify against the live
   installation (e.g. decompile the `.pyc` from the current Live.app).
-- **Tests:** plain `python3 -m pytest` from the worktree root, outside Live.
+- **Tests:** `.venv/bin/python -m pytest Launchpad95_typed/tests/` from the
+  worktree root, outside Live (the system `python3` has no pytest).
   Fakes must not import anything from `Live` or `_Framework`.
 - **Live install check** (after any runtime-touching phase): copy the folder to
   `~/Documents/Ableton/User Library/Remote Scripts/`, reload in Live, confirm the
