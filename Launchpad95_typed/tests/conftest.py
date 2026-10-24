@@ -4,7 +4,7 @@ Completes the bootstrap started by the worktree-root ``conftest.py`` (which
 pre-installs the fake ``Live`` / ``_Framework`` environment so that importing
 this package — required because ``tests/__init__.py`` makes it a subpackage
 — succeeds outside of Ableton Live). This file adds the daemon patch and the
-``host`` / ``song`` / ``surface`` fixtures.
+``host`` / ``song`` / ``surface`` / ``static_surface`` fixtures.
 
 Run from the worktree root:
 
@@ -97,4 +97,37 @@ def surface(host, request):
     # message, so ``host.midi_out`` would stay empty.
     s._suppress_send_midi = False
     s.init()
+    return s
+
+
+@pytest.fixture(params=["mk1", "mk2", "mk3", "lpx"])
+def static_surface(host, request):
+    """A statically configured per-model script (LP_MK1 / LP_MK2 / LP_MK3 /
+    LP_X), parametrized over all four models.
+
+    Unlike the ``surface`` fixture (auto-detecting ``Launchpad``, whose full
+    construction is deferred until the SYSEX handshake), the static classes
+    build everything eagerly in ``__init__`` while ``_suppress_send_midi`` is
+    still set: LED sends during construction are dropped *and* not cached, so
+    ``host.midi_out`` stays empty until the test clears the flag — mirroring
+    the real two-stage flow, where ``set_enabled(True)`` after the handshake
+    pushes the initial LED state.
+
+    The returned value is the constructed surface. Use
+    ``type(surface).__name__`` (``LP_MK1`` / ``LP_MK2`` / ``LP_MK3`` /
+    ``LP_X``) to branch on the model, or parametrize a single-model test with
+    ``@pytest.mark.parametrize("static_surface", ["mk2"], indirect=True)``.
+    """
+    from Launchpad95_typed.LP_MK1 import LP_MK1
+    from Launchpad95_typed.LP_MK2 import LP_MK2
+    from Launchpad95_typed.LP_MK3 import LP_MK3
+    from Launchpad95_typed.LP_X import LP_X
+
+    classes = {"mk1": LP_MK1, "mk2": LP_MK2, "mk3": LP_MK3, "lpx": LP_X}
+    cls = classes[request.param]
+    s = cls(c_instance=host)
+    # ``handle_sysex`` (which the tests bypass) clears this flag right before
+    # enabling; while set, ``LaunchpadBase._send_midi`` drops every message,
+    # so the tests clear it to observe probes/quit SYSEX on ``host.midi_out``.
+    s._suppress_send_midi = False
     return s
