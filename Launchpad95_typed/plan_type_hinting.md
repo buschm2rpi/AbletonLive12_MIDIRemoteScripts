@@ -6,7 +6,7 @@ Add Python 3 type hints to all `.py` files in the `Launchpad95_typed/` directory
 ## Key Challenges
 
 1. **Ableton _Framework types are unavailable externally** — classes like `ControlSurface`, `ButtonElement`, `SessionComponent` can't be imported for type checking. They are provided by Ableton Live at runtime only.
-2. **Python 2/3 compatibility** — code uses `from __future__` imports, `xrange` polyfills, `imap` polyfills.
+2. **Python 3.11+ compatibility** — Python 2 compatibility is no longer needed.
 3. **Large codebase** — many files with complex inter-component relationships.
 
 ## Strategy: `typing.TYPE_CHECKING` + `from __future__ import annotations`
@@ -73,5 +73,5 @@ Add Python 3 type hints to all `.py` files in the `Launchpad95_typed/` directory
 
 - Each phase should be reviewable independently.
 - Use `# type: ignore` sparingly — prefer `TYPE_CHECKING` blocks.
-- Keep Python 2/3 compatibility: `from __future__ import annotations` is available in Python 3.7+.
+- Keep 3.11+ compatibility: `from __future__ import annotations` is available in Python 3.7+.
 - The `Launchpad95_typed/` subdirectory is a secondary copy/variant — focus on the root-level files first.

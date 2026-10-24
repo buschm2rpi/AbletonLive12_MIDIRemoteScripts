@@ -2,6 +2,8 @@
 from _Framework.SubjectSlot import Subject, subject_slot, subject_slot_group
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 
+from typing import Any, List
+
 class TargetTrackComponent(ControlSurfaceComponent, Subject):
     """
     TargetTrackComponent handles determining the track to target for
@@ -9,7 +11,7 @@ class TargetTrackComponent(ControlSurfaceComponent, Subject):
     """
     __subject_events__ = ('target_track',)
     _target_track = None
-    _armed_track_stack = []
+    _armed_track_stack: List[Any] = []
 
     def __init__(self, *a, **k):
         super(TargetTrackComponent, self).__init__(*a, **k)

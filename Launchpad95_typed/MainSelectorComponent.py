@@ -55,7 +55,7 @@ class MainSelectorComponent(ModeSelectorComponent):
 		self._last_session_mode_button_press = int(round(time.time() * 1000))
 		self._aux_scene = None
 		#Non-Matrix buttons
-		self._all_buttons = []
+		self._all_buttons: typing.Any = []  # list of buttons; converted to a tuple in init()
 		for button in self._side_buttons + self._nav_buttons:
 			self._all_buttons.append(button)
 

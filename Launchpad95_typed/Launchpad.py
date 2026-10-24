@@ -56,7 +56,9 @@ STD_MSG_HEADER = (SYSEX_START,) + NOVATION_MANUFACTURER_ID + (2, )
 
 class Launchpad(ControlSurface):
 
-	_active_instances = []
+	# Class-level annotation is evaluated at runtime (no `from __future__
+	# import annotations` here); typing is imported above, so this is safe.
+	_active_instances: typing.List["Launchpad"] = []
 
 	@property
 	def host_api(self) -> "HostApi":
@@ -217,7 +219,8 @@ class Launchpad(ControlSurface):
 			self._user_byte_write_button.send_value(0)
 			self._user_byte_write_button = None
 
-	def _combine_active_instances():
+	def _combine_active_instances():  # type: ignore[misc]
+		# py2-style staticmethod (assigned below); no `self` by design.
 		support_devices = False
 		for instance in Launchpad._active_instances:
 			support_devices |= (instance._device_component is not None)

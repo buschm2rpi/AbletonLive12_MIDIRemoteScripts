@@ -1,12 +1,14 @@
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 import Live
 
+from typing import Any, List
+
 KEY_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 CIRCLE_OF_FIFTHS = [7 * k % 12 for k in range(12)]
 # KEY_CENTERS = CIRCLE_OF_FIFTHS[0:6] + CIRCLE_OF_FIFTHS[-1:5:-1]
 
 
-MUSICAL_MODES = []
+MUSICAL_MODES: List[Any] = []  # alternating scale name (str) / notes (list[int])
 for name,notes in Live.Song.get_all_scales_ordered():
 	MUSICAL_MODES.append(name)
 	MUSICAL_MODES.append(list(notes))
