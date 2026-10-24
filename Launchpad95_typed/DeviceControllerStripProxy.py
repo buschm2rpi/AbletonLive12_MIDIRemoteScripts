@@ -3,7 +3,7 @@ import time
 from threading import Thread
 from functools import partial
 try:
-    import Queue as queue
+    import Queue as queue  # type: ignore[import-not-found]  # py2 name; falls through to `queue` on py3
 except ModuleNotFoundError:
     import queue
 

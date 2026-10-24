@@ -52,6 +52,7 @@ The script uses a 3-tier mode selector architecture:
 ## Development Notes
 
 - **Tests:** `Launchpad95_typed/tests/` is a fake-environment pytest suite that runs **outside** Live (fakes for `Live` + `_Framework`; no production-code imports of either). Run from the worktree root: `.venv/bin/python -m pytest Launchpad95_typed/tests/` (the system `python3` has no pytest). Execution notes: `Launchpad95_typed/plan_phase3_tests.md`.
+- **Type checking:** `mypy --config-file Launchpad95_typed/mypy.ini Launchpad95_typed/` from the worktree root. `Launchpad95_typed/stubs/` (`.pyi` files, type-checker-only, never imported at runtime) provides typed stubs for the host `Live` module and the `_Framework` package, which the config surfaces via `mypy_path`. The stubs mirror the API surface exercised by the test fakes (`tests/fake_live.py`, `tests/fake_framework/`); see `stubs/README.md` and the Phase 4a notes in `plan_control_surface_protocols.md`.
 - **Python 2/3 compatibility**: The code uses `from __future__ import with_statement`, `xrange` polyfill, and `imap` polyfill.
 - **Ableton _Framework**: All components inherit from Ableton's `_Framework` base classes (`ControlSurface`, `ModeSelectorComponent`, `SessionComponent`, `MixerComponent`, `DeviceComponent`, `CompoundComponent`, `ControlSurfaceComponent`). These are provided by Ableton Live at runtime and are not importable externally.
 - **Installation**: Place the `Launchpad95_typed` folder in `~/Documents/Ableton/User Library/Remote Scripts/`.

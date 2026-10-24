@@ -1,6 +1,6 @@
 # Plan: Protocol Interfaces for ControlSurface Construction
 
-**Status:** Phase 3 complete (execution notes and deviations: `plan_phase3_tests.md`). Phases 0–1 complete; Phase 2 partial (`HostApi` typed in `Launchpad.py` / `MainSelectorComponent.py`; `ControlSurfaceFacade` not yet wired); Phase 4 optional, not started.
+**Status:** Phase 4a complete (stubs package: `Launchpad95_typed/stubs/` + `mypy.ini`; execution notes in §8 Phase 4). Phases 0–1 complete; Phase 2 partial (`HostApi` typed in `Launchpad.py` / `MainSelectorComponent.py`; `ControlSurfaceFacade` not yet wired); Phase 3 complete (execution notes: `plan_phase3_tests.md`). Phase 4b (SurfaceCore facade) not started.
 **Companion docs:** `CLAUDE.md` (project overview), `plan_type_hinting.md` (type-hinting rollout), `plan_phase3_tests.md` (Phase 3 execution plan).
 **Audience:** Any sub-agent or engineer picking up work on this repo. This document is self-contained; no prior conversation context is required.
 
@@ -95,16 +95,14 @@ that already exist.**
 
 Two environment facts shape the design:
 
-1. **Python version: do not assume a single answer.** The current Live 12
+1. **Python version: 3.11 and later.** The current Live 12
    installation runs **CPython 3.11** (custom remote scripts compile to 3.11-magic
-   `.pyc` files). But the `_Framework` snapshot in this repo was decompiled from an
+   `.pyc` files). Don't worry about the fact that the `_Framework` snapshot in this repo was decompiled from an
    **older, 3.7-era Ableton build** — every file's uncompyle6 header says
    `Python bytecode version base 3.7.0 (3394)` (magic 3394 = CPython 3.7),
    `Compiled at: 2024-03-09`. (The `Decompiled from: Python 3.12.2` line is the
    interpreter that ran the *decompiler tool*, not Live's Python — a common
-   misreading.) ⇒ Protocols live under `if TYPE_CHECKING:` so the design is
-   **version-agnostic**: identical behavior on 3.7-era and 3.11-era Live, with
-   **zero runtime footprint** either way.
+   misreading.) ⇒ Nonetheless, this code will only ever run with 3.11-era Live. Importing the protocols in a 'if TYPE_CHECKING' check is ok.
 2. **`_Framework` sources are unparseable** (decompiler artifacts, §1). ⇒ Protocol
    signatures use `Any` (with comments) where a `_Framework` type would appear, instead
    of importing the broken modules. (Optional Phase 4 adds minimal local stubs if the
@@ -120,8 +118,7 @@ Paste-ready content:
 
 These protocols name the interfaces that *our* code depends on. They are
 defined under TYPE_CHECKING so this module executes nothing at runtime:
-zero footprint, zero behavior change, and identical behavior whether the
-script runs on a 3.7-era or a 3.11-era Live. (typing.Protocol is importable
+zero footprint, zero behavior change. (typing.Protocol is importable
 at runtime on 3.8+, but a remote script that crashes takes the controller
 down with it; static-only contracts carry no such risk.)
 
@@ -410,6 +407,56 @@ no changes to `__init__.py` capabilities, no behavior changes.
 - **Rationale:** both are higher-effort, lower-urgency hardening; do not start
   without explicit sign-off.
 
+#### Phase 4a — DONE (stubs package)
+
+Execution notes (2025-10): user sign-off chose option (a) only.
+
+- **Stub package:** `Launchpad95_typed/stubs/` with `.pyi` files for the
+  `Live` module tree (`Application`, `Base`, `Chain`, `Clip`, `Device`,
+  `MidiRemoteScript`, `NoteRepeat`, `RackDevice`, `Scene`, `Song`, `Track`) and
+  the 22 `_Framework` modules the script imports (plus intra-stub dependencies
+  like `ControlElement` / `NotifyingControlElement` / `CompoundElement` /
+  `EncoderElement`). See `stubs/README.md`.
+- **Source of truth for the declared surface:** the test fakes
+  (`tests/fake_live.py`, `tests/fake_framework/`, `tests/fakes.py`) are the
+  executable specification; the read-only decompiled `../_Framework/` sources
+  supplied exact signatures. Where they disagreed, the fakes won (they encode
+  what current Live actually provides); such spots are commented in the stubs
+  (e.g. `ControlElement.set_enabled`/`is_enabled`, which the older decompiled
+  snapshot lacks but current Live has).
+- **mypy config:** `Launchpad95_typed/mypy.ini` sets
+  `mypy_path = $MYPY_CONFIG_FILE_DIR/stubs` (mypy searches `mypy_path` before
+  the source directory, so the stubs shadow the broken real `_Framework` in
+  the worktree root) and excludes `tests/` + `stubs/` from the check.
+  Run from the worktree root:
+  `mypy --config-file Launchpad95_typed/mypy.ini Launchpad95_typed/`
+  → **Success: no issues found in 36 source files** (mypy 2.1.0, py 3.11).
+  A negative test (deliberate `attr-defined`/`arg-type` errors against the
+  stubs) confirms the check is real, not vacuous.
+- **contracts.py:** all `Any` placeholders replaced with stub types
+  (`Song`, `Track`, `Device`, `NoteRepeat`, `ControlElement`,
+  `ControlSurfaceComponent`, `DeviceComponent`, `SessionComponent`,
+  `PadTranslation = Tuple[int, int, int, int, int]`). One Phase-0 signature
+  bug fixed: `HostApi.note_repeat` was declared as a *method*; the runtime
+  usage (`c_instance.note_repeat` attribute access, `FakeHostApi` property)
+  proves it is a *property* — now declared as such.
+- **Declarative fixes in script code** (no behavior change): type annotations
+  for `_active_instances` (Launchpad.py), `_all_buttons`
+  (MainSelectorComponent.py), `_armed_track_stack` (TargetTrackComponent.py),
+  `MUSICAL_MODES` (ScaleComponent.py); `# type: ignore` with comments on the
+  py2-style `_combine_active_instances` staticmethod (Launchpad.py) and the
+  py2 `import Queue` shim (DeviceControllerStripProxy.py).
+- **mypy 2.x gotchas hit** (documented in `mypy.ini`): multi-line `exclude`
+  values make mypy re-ingest the config file as a source (keep `exclude`
+  single-line); `...`-bodied methods in `.py` stub files raise `empty-body`
+  (use `.pyi` files).
+- **Runtime footprint:** zero. Stubs are `.pyi` (not importable by CPython at
+  all); `contracts.py` imports them only under `TYPE_CHECKING`. Installer
+  note: exclude `stubs/` and `tests/` when copying to
+  `~/Documents/Ableton/User Library/Remote Scripts/`.
+- **Verification:** `.venv/bin/python -m pytest Launchpad95_typed/tests/` →
+  129 passed, unchanged.
+
 ---
 
 ## 9. Anti-goals / what NOT to do
@@ -438,11 +485,13 @@ no changes to `__init__.py` capabilities, no behavior changes.
 ## 10. Verification & environment notes
 
 - **Type checker:** run from the worktree root
-  (`/Users/michael/Github-Repos/AbletonLive12_MIDIRemoteScripts_worktree/`) so both
-  `Launchpad95_typed` and the (broken) `_Framework` are visible. Expect mypy/pyright
-  to fail parsing the 8 corrupted `_Framework` files; configure the checker to skip
-  `_Framework` (e.g. `--follow-imports=skip` / `exclude`) — our code references
-  `_Framework` types only as `Any` or under `TYPE_CHECKING`, so this is fine.
+  (`/Users/michael/Github-Repos/AbletonLive12_MIDIRemoteScripts_worktree/`):
+  `mypy --config-file Launchpad95_typed/mypy.ini Launchpad95_typed/`.
+  The config points `mypy_path` at `Launchpad95_typed/stubs/`, so `Live` and
+  `_Framework` resolve to the local stubs and the 8 corrupted real
+  `_Framework` files are never parsed. (Pre-Phase-4a, the workaround was
+  `--follow-imports=skip`, which left `Live`/`_Framework` unresolvable.)
+  Keep `exclude` on a single line (mypy 2.x bug, see Phase 4a notes).
 - **`_Framework` snapshot age:** the decompiled files in `../_Framework/` come
   from a 3.7-era Ableton build (header: compiled 2024-03-09) and may not match
   what the current (3.11-era) Live ships. Treat them as reference for *structure
