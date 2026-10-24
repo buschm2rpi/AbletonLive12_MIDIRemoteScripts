@@ -178,3 +178,17 @@ if TYPE_CHECKING:
         def get_control_by_name(self, name: str) -> Optional[ControlElement]: ...
         @contextmanager
         def component_guard(self) -> Iterator[None]: ...
+
+
+# Phase 4b additions
+try:
+    from .surface_core import SurfaceCore, ControlSurfaceCore
+    __all__ = [
+        'HostApi', 'MidiTransport', 'MidiDispatcher', 'MidiMapManager',
+        'ComponentRegistry', 'ComponentLifecycle', 'TaskScheduler',
+        'SongStateListener', 'DeviceLockManager', 'SessionHighlighter',
+        'ReentrancyGuard', 'ControlSurfaceFacade',
+        'SurfaceCore', 'ControlSurfaceCore'
+    ]
+except Exception:
+    pass
