@@ -384,3 +384,45 @@ class LaunchpadBase(ControlSurface):
 		self._note_repeat = NoteRepeatComponent(name='Note_Repeat')
 		self._note_repeat.set_enabled(False)
 		self._note_repeat.set_note_repeat(self._c_instance.note_repeat)
+
+
+# Phase 4b: SurfaceCore integration - delegate to facade while maintaining compatibility
+try:
+    from .surface_core import SurfaceCore
+except Exception:
+    SurfaceCore = None
+
+
+    def _get_surface_core(self):
+        """Get or create the SurfaceCore facade for this control surface."""
+        if not hasattr(self, '_surface_core') or self._surface_core is None:
+            try:
+                from .surface_core import SurfaceCore
+                self._surface_core = SurfaceCore(self, getattr(self, '_c_instance', None))
+            except Exception:
+                self._surface_core = None
+        return self._surface_core
+
+    @property
+    def core(self):
+        """Access to the SurfaceCore facade."""
+        core = self._get_surface_core()
+        if core is not None:
+            return core
+        # Fallback to self if core not available
+        return self
+
+
+    # Phase 4b: Initialize SurfaceCore facade
+    def __init__(self, *a, **k):
+        # Ensure control surface base init happens
+        try:
+            ControlSurface.__init__(self, *a, **k)
+        except Exception:
+            pass
+        # Initialize SurfaceCore facade
+        try:
+            from .surface_core import SurfaceCore
+            self._surface_core = SurfaceCore(self, getattr(self, '_c_instance', None))
+        except Exception:
+            self._surface_core = None
