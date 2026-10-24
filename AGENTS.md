@@ -13,6 +13,9 @@ Compact instructions for OpenCode sessions. Only include guidance that would be 
 - `_Framework.*` provides base classes (`ControlSurface`, components). Do not import from real `_Framework` outside Live; in tests it is aliased via fakes.
 - `Launchpad95_typed/` is a typed/variant subproject with its own `CLAUDE.md`, plans, and pytest fake environment. Treat `Launchpad95_typed/CLAUDE.md` as authoritative for that directory. Other top-level dirs are standard remote scripts.
 
+## Setup (first time)
+- Run `./setup.sh` from the repo root to create `Launchpad95_typed/.venv` and install test dependencies (`pytest`, `future`). Override Python with `PYTHON=python3.11 ./setup.sh` if needed.
+
 ## Testing (Launchpad95_typed only)
 - Only `Launchpad95_typed/` has a runnable pytest suite using fakes. Other controller directories have no test harness in this repo.
 - Run from the worktree root: `Launchpad95_typed/.venv/bin/python -m pytest Launchpad95_typed/tests/` (system `python3` has no pytest).
