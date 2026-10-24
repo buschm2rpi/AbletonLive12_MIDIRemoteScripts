@@ -10,7 +10,9 @@ Launchpad95 is an Ableton Live remote script for Novation Launchpad hardware con
 
 ### Entry Point
 - `__init__.py` — Defines `create_instance(c_instance)` and `get_capabilities()`. Ableton instantiates this module as the control surface.
-- `Launchpad.py` — Main `ControlSurface` subclass. Handles hardware detection via SYSEX challenge handshake (2-stage init: detect model → configure buttons/skins). Supports 4 hardware variants: classic (MK1), MK2 RGB, MK3 RGB, and LPX.
+- `LaunchpadBase.py` — Shared `ControlSurface` machinery (init/disconnect/mapping, hardware probes, SYSEX detection). Class-level flags `_lpx` / `_mk2_rgb` / `_mk3_rgb` control skin/layout/drum notes.
+- `Launchpad.py` — Auto-detecting entry point `class Launchpad(LaunchpadBase)` (kept for backward compatibility). Sends all three probes and identifies the model from the SYSEX challenge/identity response (two-stage init: detect model → configure buttons/skins). Supports 4 hardware variants: classic (MK1), MK2 RGB, MK3 RGB, and LPX.
+- `LP_MK1.py`, `LP_MK2.py`, `LP_MK3.py`, `LP_X.py` — Statically configured subclasses that build eagerly in `__init__()` and only use the handshake as an enable gate. For model selection via Live, use the per-model script folders (`Launchpad95_MK1/`, `Launchpad95_MK2/`, `Launchpad95_MK3/`, `Launchpad95_X/`), each containing only `__init__.py` that re-exports the corresponding class from `Launchpad95_typed`.
 
 ### Mode Selection Hierarchy
 The script uses a 3-tier mode selector architecture:
@@ -46,12 +48,12 @@ The script uses a 3-tier mode selector architecture:
 
 ### Hardware
 - Button mapping: 8x8 matrix + 8 top buttons (nav + mode) + 8 side buttons (scene launch + transport)
-- MIDI notes/CCs differ between hardware generations (see `Launchpad.py` lines 97-109, 124-139)
-- SYSEX identity detection in `handle_sysex()` (lines 252-301)
+- MIDI notes/CCs differ between hardware generations (see `LaunchpadBase.py` `init()` layout logic; top buttons CC 104 vs 91 depending on model, side buttons NOTE vs CC on MK3/LPX)
+- SYSEX identity/challenge detection in `LaunchpadBase.handle_sysex()` and per-model `handle_sysex()` overrides; probes sent by `_send_challenge()` (auto-detect sends all three, static models send only their own)
 
 ## Development Notes
 
-- **Tests:** `Launchpad95_typed/tests/` is a fake-environment pytest suite that runs **outside** Live (fakes for `Live` + `_Framework`; no production-code imports of either). Run from the worktree root: `.venv/bin/python -m pytest Launchpad95_typed/tests/` (the system `python3` has no pytest). Execution notes: `Launchpad95_typed/plan_phase3_tests.md`.
+- **Tests:** `Launchpad95_typed/tests/` is a fake-environment pytest suite that runs **outside** Live (fakes for `Live` + `_Framework`; no production-code imports of either). Run from the worktree root: `Launchpad95_typed/.venv/bin/python -m pytest Launchpad95_typed/tests/` (the system `python3` has no pytest). Fixtures: `surface` (auto-detect, default mk2, two-stage init via flags+`init()`) and `static_surface` (parametrized over `LP_MK1/LP_MK2/LP_MK3/LP_X`, eager init). Execution notes: `Launchpad95_typed/plan_phase3_tests.md`.
 - **Type checking:** `mypy --config-file Launchpad95_typed/mypy.ini Launchpad95_typed/` from the worktree root. `Launchpad95_typed/stubs/` (`.pyi` files, type-checker-only, never imported at runtime) provides typed stubs for the host `Live` module and the `_Framework` package, which the config surfaces via `mypy_path`. The stubs mirror the API surface exercised by the test fakes (`tests/fake_live.py`, `tests/fake_framework/`); see `stubs/README.md` and the Phase 4a notes in `plan_control_surface_protocols.md`.
 - **Python 2/3 compatibility**: The code uses `from __future__ import with_statement`, `xrange` polyfill, and `imap` polyfill.
 - **Ableton _Framework**: All components inherit from Ableton's `_Framework` base classes (`ControlSurface`, `ModeSelectorComponent`, `SessionComponent`, `MixerComponent`, `DeviceComponent`, `CompoundComponent`, `ControlSurfaceComponent`). These are provided by Ableton Live at runtime and are not importable externally.

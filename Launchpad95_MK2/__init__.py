@@ -1,5 +1,5 @@
 from _Framework.Capabilities import CONTROLLER_ID_KEY, PORTS_KEY, NOTES_CC, SCRIPT, SYNC, REMOTE, controller_id, inport, outport
-from .LP_MK2 import LP_MK2
+from Launchpad95_typed.LP_MK2 import LP_MK2
 
 def create_instance(c_instance):
 	""" Creates and returns the Launchpad script """
@@ -10,18 +10,10 @@ def get_capabilities():
 		CONTROLLER_ID_KEY: controller_id(
 			vendor_id = 4661,
 			product_ids = [
-				14, # Lauchpad
-				54, # Launchpad Mini
-				105,# Launchpad ?
-				106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,
-				275,# Launchpad Mini MK3'
-				259 # launchpad X
+				105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120
 			],
 			model_name =
 			[
-				'Launchpad',
-				'Launchpad Mini',
-				'Launchpad S',
 				'Launchpad MK2',
 				'Launchpad MK2 2',
 				'Launchpad MK2 3',
@@ -37,17 +29,11 @@ def get_capabilities():
 				'Launchpad MK2 13',
 				'Launchpad MK2 14',
 				'Launchpad MK2 15',
-				'Launchpad MK2 16',
-				'Launchpad Mini MK3',
-				'Launchpad X'
+				'Launchpad MK2 16'
 			]
 		),
 		PORTS_KEY:
 			[
-	            #inport(props=[NOTES_CC, SCRIPT]),
-	            #inport(props=[NOTES_CC, REMOTE]),
-	            #outport(props=[NOTES_CC, SYNC, SCRIPT]),
-	            #outport(props=[REMOTE])
 				inport(props = [NOTES_CC, REMOTE]),
 				inport(props = [NOTES_CC, REMOTE, SCRIPT]),
 				outport(props = [NOTES_CC, SYNC, REMOTE]),

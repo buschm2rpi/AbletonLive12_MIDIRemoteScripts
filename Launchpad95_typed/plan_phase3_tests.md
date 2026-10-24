@@ -30,19 +30,23 @@
 - **Missing:** `tests/__init__.py` and **all** test modules — the suite currently
   collects 0 items.
 - **Runner:** the worktree root has `.venv` (Python 3.11.17, pytest 9.1.1). The
-  system `python3` has no pytest. Run: `.venv/bin/python -m pytest Launchpad95_typed/tests/`
+  system `python3` has no pytest. Run: `Launchpad95_typed/.venv/bin/python -m pytest Launchpad95_typed/tests/`
   from the worktree root. (This satisfies the plan's acceptance wording; `conftest.py`
   already documents the venv invocation.)
 
 ## 3. Known gaps (found by driving the fakes; all fixed in Step 0, `tests/` only)
 
 1. **The `surface` fixture is half-initialized (two-stage init).**
-   `create_instance()` runs only `Launchpad.__init__`, which sends the SYSEX
-   challenge and leaves `_selector = None`. The full construction (skin, matrix,
-   `MainSelectorComponent`) happens in `Launchpad.init()`, which Live triggers from
-   the hardware's challenge response via `handle_sysex`.
+   `create_instance()` runs only `Launchpad.__init__` (the auto-detect class),
+   which sends the SYSEX challenge and leaves `_selector = None`. The full
+   construction (skin, matrix, `MainSelectorComponent`) happens in
+   `LaunchpadBase.init()`, which Live triggers from the hardware's challenge
+   response via `handle_sysex`.
    ⇒ In tests, drive it directly: set the model flag
    (`_mk2_rgb` / `_mk3_rgb` / `_lpx`, or none for MK1) then call `surface.init()`.
+   - The statically configured classes (`LP_MK1`/`LP_MK2`/`LP_MK3`/`LP_X`) build
+     eagerly in `__init__()`; use the `static_surface` fixture (parametrized over
+     all four) to test them.
    - Note: the SYSEX handshake itself cannot be driven with the current fakes —
      fake `Application.encrypt_challenge2` is the identity function on a 31-bit
      challenge, so the 2-byte response comparison in `handle_sysex` can never
@@ -101,6 +105,11 @@ plus a new worktree-root `conftest.py` (see execution notes, item 3).
    Default to **mk2** (exercises the RGB color-table path). Where a specific model
    matters, parameterize:
    `@pytest.mark.parametrize("surface", ["mk1", "mk2"], indirect=["surface"])`.
+
+   Also added the `static_surface` fixture (parametrized over `LP_MK1`/`LP_MK2`/
+   `LP_MK3`/`LP_X`) which constructs each class directly (eager `init()` in
+   `__init__()`, `_init_done` True) and clears `host.midi_out`/messages before
+   returning so probe/disconnect assertions are clean. See `tests/test_static_models.py`.
 4. `conftest.py`: after `install_fake_environment()`:
 
    ```python

@@ -5,18 +5,21 @@ from _Framework.ControlSurface import ControlSurface
 from _Framework.InputControlElement import MIDI_CC_TYPE, MIDI_NOTE_TYPE
 from _Framework.ButtonElement import ButtonElement
 from _Framework.ButtonMatrixElement import ButtonMatrixElement
-from Launchpad95_typed.ConfigurableButtonElement import ConfigurableButtonElement
-from Launchpad95_typed.MainSelectorComponent import MainSelectorComponent
-from Launchpad95_typed.NoteRepeatComponent import NoteRepeatComponent
-from Launchpad95_typed.M4LInterface import M4LInterface
-from Launchpad95_typed.Log import log
-from Launchpad95_typed.Settings import Settings
+from .ConfigurableButtonElement import ConfigurableButtonElement
+from .MainSelectorComponent import MainSelectorComponent
+from .NoteRepeatComponent import NoteRepeatComponent
+from .M4LInterface import M4LInterface
+from .Log import log
+from .Settings import Settings
+
 import typing
 
-# This only needs to work for python >= 3.11
-if typing.TYPE_CHECKING:
-    from Launchpad95_typed.contracts import HostApi
+# "Type-checking only" guard. Mirrors typing.TYPE_CHECKING (False at runtime)
+# via getattr so it also works on Python < 3.8, where the attribute is absent.
+_TYPE_CHECKING = getattr(typing, "TYPE_CHECKING", False)
 
+if _TYPE_CHECKING:
+    from .contracts import HostApi
 
 DO_COMBINE = Live.Application.combine_apcs()  # requires 8.2 & higher
 
@@ -55,6 +58,16 @@ class LaunchpadBase(ControlSurface):
 
 	_active_instances = []
 
+	# Hardware model flags. Class-level so the per-model subclasses
+	# (LP_MK1 / LP_MK2 / LP_MK3 / LP_X) can set them declaratively; the
+	# auto-detecting ``Launchpad`` sets them as instance attributes when the
+	# challenge response identifies the model. Read by SpecialSessionComponent
+	# and SpecialProSessionComponent — keep the semantics: MK3 and LPX leave
+	# ``_mk2_rgb`` False.
+	_lpx = False
+	_mk2_rgb = False
+	_mk3_rgb = False
+
 	@property
 	def host_api(self) -> "HostApi":
 		"""The Ableton host object (Live.MidiRemoteScript) — the single seam
@@ -68,9 +81,6 @@ class LaunchpadBase(ControlSurface):
 		self._live_minor_version = live.get_minor_version()
 		self._live_bugfix_version = live.get_bugfix_version()
 		self._selector = None #needed because update hardware is called.
-		self._lpx = False
-		self._mk2_rgb = False
-		self._mk3_rgb = False
 		with self.component_guard():
 			self._suppress_send_midi = True
 			self._suppress_session_highlight = True
@@ -83,8 +93,7 @@ class LaunchpadBase(ControlSurface):
 			self._challenge = Live.Application.get_random_int(0, 400000000) & 2139062143
 			self._init_done = False
 		# caller will send challenge and we will continue as challenge is received.
-		
-	'''	
+
 	def init(self):
 		#skip init if already done.
 		if self._init_done:
@@ -184,9 +193,7 @@ class LaunchpadBase(ControlSurface):
 				self.log_message("LaunchPad95 (mk2) Loaded !")
 			else:
 				self.log_message("LaunchPad95 (classic) Loaded !")
-	'''
 
-	'''		
 	def disconnect(self):
 		self._suppress_send_midi = True
 		for control in self.controls:
@@ -216,7 +223,6 @@ class LaunchpadBase(ControlSurface):
 		if self._user_byte_write_button is not None:
 			self._user_byte_write_button.send_value(0)
 			self._user_byte_write_button = None
-	'''
 
 	def _combine_active_instances():
 		support_devices = False
@@ -253,7 +259,6 @@ class LaunchpadBase(ControlSurface):
 		ControlSurface.refresh_state(self)
 		self.schedule_message(5, self._update_hardware)
 
-	'''
 	def handle_sysex(self, midi_bytes):
 		if len(midi_bytes) >= 10 and midi_bytes[:8] == (240, 126, 0, 6, 2, 0, 32, 41): #0,32,41=novation
 			if len(midi_bytes) >= 12 and midi_bytes[8:10] == (19,1):
@@ -304,8 +309,6 @@ class LaunchpadBase(ControlSurface):
 				self.set_enabled(True)
 		else:
 			ControlSurface.handle_sysex(self,midi_bytes)
-	'''
-		
 
 	def build_midi_map(self, midi_map_handle):
 		ControlSurface.build_midi_map(self, midi_map_handle)
@@ -338,7 +341,6 @@ class LaunchpadBase(ControlSurface):
 		self._suppress_send_midi = False
 		self._send_challenge()
 
-	'''
 	def _send_challenge(self):
 		# send challenge for all models to allow to detect which one is actually plugged
 		# mk3 and LPX
@@ -350,7 +352,6 @@ class LaunchpadBase(ControlSurface):
 		for index in range(4):
 			challenge_byte = self._challenge >> 8 * index & 127
 			self._send_midi((176, 17 + index, challenge_byte))
-	'''
 
 	def _user_byte_value(self, value):
 		assert (value in range(128))
