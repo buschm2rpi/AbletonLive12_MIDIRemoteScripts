@@ -5,6 +5,9 @@ from .ButtonSliderElement import ButtonSliderElement
 from .Settings import Settings
 import time
 from .Log import log
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .contracts import ControlSurfaceFacade
 
 SLIDER_MODE_OFF = 0
 SLIDER_MODE_TOGGLE = 1
@@ -22,7 +25,7 @@ returning = ["set_enabled", "param_name", "param_value", "__ne__"]
 
 
 class DeviceControllerStripServer(ButtonSliderElement, threading.Thread):
-    def __init__(self, buttons, control_surface, column, request_queue,
+    def __init__(self, buttons, control_surface: "ControlSurfaceFacade", column, request_queue,
         response_queue, parent=None):
         ButtonSliderElement.__init__(self, buttons)
         self._control_surface = control_surface
@@ -39,7 +42,7 @@ class DeviceControllerStripServer(ButtonSliderElement, threading.Thread):
         self._stepless_mode = False
         self._enabled = True
         self._update_primed = False
-        self._parameter_stack = {}
+        self._parameter_stack: dict = {}
         self._current_value = None
         self._last_value = None
         self._last_sent_value = -1

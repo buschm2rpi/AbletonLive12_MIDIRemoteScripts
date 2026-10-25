@@ -1,5 +1,8 @@
 from _Framework.Skin import SkinColorMissingError
 from _Framework.ButtonElement import ButtonElement, ON_VALUE, OFF_VALUE
+from typing import TYPE_CHECKING, Optional
+if TYPE_CHECKING:
+	from .contracts import ControlSurfaceFacade
 
 class ConfigurableButtonElement(ButtonElement):
 	"""
@@ -13,7 +16,7 @@ class ConfigurableButtonElement(ButtonElement):
 	default_states = {True: 'DefaultButton.On', False: 'DefaultButton.Off'}
 	send_depends_on_forwarding = False
 
-	def __init__(self, is_momentary, msg_type, channel, identifier, skin = None, default_states = None, control_surface = None, *a, **k):
+	def __init__(self, is_momentary, msg_type, channel, identifier, skin = None, default_states = None, control_surface: Optional["ControlSurfaceFacade"] = None, *a, **k):
 		self._control_surface = control_surface
 		super(ConfigurableButtonElement, self).__init__(is_momentary, msg_type, channel, identifier, skin = skin, **k)
 		if default_states is not None:

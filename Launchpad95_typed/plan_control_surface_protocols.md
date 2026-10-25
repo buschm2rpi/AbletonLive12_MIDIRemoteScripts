@@ -1,6 +1,6 @@
 # Plan: Protocol Interfaces for ControlSurface Construction
 
-**Status:** Phase 4a complete (stubs package: `Launchpad95_typed/stubs/` + `mypy.ini`; execution notes in §8 Phase 4). Phases 0–1 complete; Phase 2 partial (`HostApi` typed in `Launchpad.py` / `MainSelectorComponent.py`; `ControlSurfaceFacade` not yet wired); Phase 3 complete (execution notes: `plan_phase3_tests.md`). Phase 4b (SurfaceCore facade) not started.
+**Status:** Phases 0–4 complete. Phase 0 (`contracts.py`), Phase 1 (host seam), Phase 2 (`ControlSurfaceFacade` wired across components), Phase 3 (fake test suite), Phase 4a (local stubs package in `Launchpad95_typed/stubs/` + `mypy.ini`), and Phase 4b (`SurfaceCore` facade in `surface_core.py` and `LaunchpadBase.core`) are all fully implemented, passing mypy and pytest outside Live.
 **Companion docs:** `CLAUDE.md` (project overview), `plan_type_hinting.md` (type-hinting rollout), `plan_phase3_tests.md` (Phase 3 execution plan).
 **Audience:** Any sub-agent or engineer picking up work on this repo. This document is self-contained; no prior conversation context is required.
 
@@ -456,6 +456,31 @@ Execution notes (2025-10): user sign-off chose option (a) only.
   `~/Documents/Ableton/User Library/Remote Scripts/`.
 - **Verification:** `.venv/bin/python -m pytest Launchpad95_typed/tests/` →
   129 passed, unchanged.
+
+#### Phase 4b — DONE (SurfaceCore facade & integration)
+
+Execution notes:
+- **SurfaceCore facade:** Added `Launchpad95_typed/surface_core.py` composing the
+  10 protocol collaborators (`HostApiAdapter`, `MidiTransportAdapter`,
+  `MidiDispatcherAdapter`, `MidiMapManagerAdapter`, `ComponentRegistryAdapter`,
+  `ComponentLifecycleAdapter`, `TaskSchedulerAdapter`, `DeviceLockManagerAdapter`,
+  `SessionHighlighterAdapter`, `ReentrancyGuardAdapter`) and exposing
+  `ControlSurfaceFacade` convenience methods.
+- **Integration Seam:** Integrated cleanly into `LaunchpadBase` with a lazy
+  `_get_surface_core()` accessor and `core` property.
+- **Protocol Typing (Phase 2):** Wired `ControlSurfaceFacade` under `TYPE_CHECKING`
+  across component constructors (`MainSelectorComponent`, `SubSelectorComponent`,
+  `SpecialSessionComponent`, `SpecialProSessionComponent`, `StepSequencerComponent`,
+  `StepSequencerComponent2`, `InstrumentControllerComponent`, `NoteEditorComponent`,
+  `NoteSelectorComponent`, `LoopSelectorComponent`, `DeviceControllerComponent`,
+  `TrackControllerComponent`, `ScaleComponent`, `SpecialProSessionRecordingComponent`,
+  `ConfigurableButtonElement`, `DeviceControllerStrip`, `DeviceControllerStripProxy`,
+  `DeviceControllerStripServer`).
+- **Tests & Verification:**
+  - Added `tests/test_surface_core.py`.
+  - `mypy --config-file Launchpad95_typed/mypy.ini Launchpad95_typed/` passes cleanly (0 errors across 42 files).
+  - Pytest suite passes: 185 passed, 4 skipped.
+
 
 ---
 

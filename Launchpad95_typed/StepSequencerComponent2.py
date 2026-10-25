@@ -8,6 +8,9 @@ from .ScaleComponent import MUSICAL_MODES, KEY_NAMES
 from .TrackControllerComponent import TrackControllerComponent
 from random import randrange
 import time
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+	from .contracts import ControlSurfaceFacade
 
 STEPSEQ_MODE_NOTES = 1
 STEPSEQ_MODE_NOTES_OCTAVES = 2
@@ -25,7 +28,7 @@ LONG_BUTTON_PRESS = 1.0
 
 class MelodicNoteEditorComponent(ControlSurfaceComponent):
 
-	def __init__(self, step_sequencer, matrix, side_buttons, control_surface):
+	def __init__(self, step_sequencer, matrix, side_buttons, control_surface: "ControlSurfaceFacade"):
 		ControlSurfaceComponent.__init__(self)
 		self._control_surface = control_surface
 		self.set_enabled(False)
@@ -52,7 +55,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 
 		# clip
 		self._clip = None
-		self._note_cache = []
+		self._note_cache: list = []
 		self._force_update = True
 		self._init_data()
 
@@ -739,7 +742,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 
 class StepSequencerComponent2(StepSequencerComponent):
 
-	def __init__(self, matrix, side_buttons, top_buttons, control_surface):
+	def __init__(self, matrix, side_buttons, top_buttons, control_surface: "ControlSurfaceFacade"):
 		super(StepSequencerComponent2, self).__init__(matrix, side_buttons, top_buttons, control_surface)
 		self._new_clip_pages = 1
 		self._name = "melodic step sequencer"

@@ -1,10 +1,13 @@
 from _Framework.ButtonElement import ButtonElement
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .contracts import ControlSurfaceFacade
 
 #Allows to note selection and navigation through note groups and pages
 class NoteSelectorComponent(ControlSurfaceComponent):
 
-    def __init__(self, step_sequencer, offset_buttons, control_surface):
+    def __init__(self, step_sequencer, offset_buttons, control_surface: "ControlSurfaceFacade"):
         self._step_sequencer = step_sequencer
         self._control_surface = control_surface
         ControlSurfaceComponent.__init__(self)

@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
     from _Framework.DeviceComponent import DeviceComponent
     from _Framework.SessionComponent import SessionComponent
+    from Live.Application import Application
     from Live.Device import Device
     from Live.NoteRepeat import NoteRepeat
     from Live.Song import Song
@@ -178,6 +179,16 @@ if TYPE_CHECKING:
         def get_control_by_name(self, name: str) -> Optional[ControlElement]: ...
         @contextmanager
         def component_guard(self) -> Iterator[None]: ...
+        def application(self) -> Application: ...
+        def set_device_component(self, component: Optional[DeviceComponent]) -> None: ...
+        def set_feedback_channels(self, channels: List[int]) -> None: ...
+        def release_controlled_track(self) -> None: ...
+        def set_controlled_track(self, track: Optional[Track]) -> None: ...
+        # Hardware variant and skin flags accessed by components
+        _lpx: bool
+        _mk2_rgb: bool
+        _mk3_rgb: bool
+        _skin: Any
 
 
 # Phase 4b additions

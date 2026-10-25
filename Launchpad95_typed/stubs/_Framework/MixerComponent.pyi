@@ -37,7 +37,7 @@ class MixerComponent(CompoundComponent):
     def master_strip(self) -> "ChannelStripComponent":
         ...
 
-    def selected_strip(self) -> Optional["ChannelStripComponent"]:
+    def selected_strip(self) -> "ChannelStripComponent":
         ...
 
     def set_prehear_volume_control(self, control: Optional[ControlElement]) -> None:

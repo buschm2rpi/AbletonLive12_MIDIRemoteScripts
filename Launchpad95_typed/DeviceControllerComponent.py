@@ -4,13 +4,16 @@ from .DeviceControllerStripProxy import DeviceControllerStripProxy
 import time
 import Live
 from .Settings import Settings
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .contracts import ControlSurfaceFacade
 
 
 class DeviceControllerComponent(DeviceComponent):
     __module__ = __name__
     __doc__ = ''
 
-    def __init__(self, control_surface=None, name="device_component",
+    def __init__(self, control_surface: "ControlSurfaceFacade", name="device_component",
         is_enabled=False, matrix=None, side_buttons=None, top_buttons=None):
         self._control_surface = control_surface
         self.name = name
@@ -58,7 +61,7 @@ class DeviceControllerComponent(DeviceComponent):
         DeviceComponent.__init__(self)
 
         # Sliders
-        self._sliders = []
+        self._sliders: list = []
         if matrix is not None:
             self.set_matrix(matrix)
         self.set_enabled(is_enabled)

@@ -7,6 +7,9 @@ from _Framework.Util import find_if, clamp
 
 from .TrackControllerComponent import TrackControllerComponent
 from .ScaleComponent import ScaleComponent,CIRCLE_OF_FIFTHS,MUSICAL_MODES,KEY_NAMES
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+	from .contracts import ControlSurfaceFacade
 
 KEY_MODE = 0
 SCALE_TYPE_MODE = 1
@@ -14,14 +17,14 @@ SCALE_TYPE_MODE = 1
 
 class InstrumentControllerComponent(CompoundComponent):
 
-	def __init__(self, matrix, side_buttons, top_buttons, control_surface, note_repeat):
+	def __init__(self, matrix, side_buttons, top_buttons, control_surface: "ControlSurfaceFacade", note_repeat):
 		super(InstrumentControllerComponent, self).__init__()
 		self._control_surface = control_surface
 		self._note_repeat = note_repeat
 		self._osd = None
 		self._matrix = None
 		self._side_buttons = side_buttons
-		self._remaining_buttons = []
+		self._remaining_buttons: list = []
 		self._track_controller = None
 		self.base_channel = 11
 		self._quick_scales = [0, 1, 2, 3, 4, 5, 6, 7, 10, 13, 14, 15, 17, 18, 24]

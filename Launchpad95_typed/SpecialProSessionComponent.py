@@ -4,6 +4,9 @@ import Live
 #import traceback
 from .ClipSlotMK2 import ClipSlotMK2
 from _Framework.SceneComponent import SceneComponent
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+	from .contracts import ControlSurfaceFacade
 from _Framework.ButtonElement import ButtonElement
 from _Framework.SubjectSlot import subject_slot
 from _Framework.ClipSlotComponent import ClipSlotComponent
@@ -454,7 +457,7 @@ class SpecialProSessionComponent(SpecialSessionComponent):
 	scene_component_type = SpecialSceneComponent
 	""" Special session subclass that handles ConfigurableButtons """
 
-	def __init__(self, num_tracks, num_scenes, stop_clip_buttons, side_buttons, control_surface, main_selector, livesong = None):
+	def __init__(self, num_tracks, num_scenes, stop_clip_buttons, side_buttons, control_surface: "ControlSurfaceFacade", main_selector, livesong = None):
 		self._pro_mode_on = False
 		if control_surface._mk2_rgb:
 			#use custom clip colour coding : blink and pulse for trig and play 

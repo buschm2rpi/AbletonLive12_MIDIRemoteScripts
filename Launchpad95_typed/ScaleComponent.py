@@ -1,7 +1,9 @@
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 import Live
 
-from typing import Any, List
+from typing import Any, List, TYPE_CHECKING, Optional
+if TYPE_CHECKING:
+	from .contracts import ControlSurfaceFacade
 
 KEY_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 CIRCLE_OF_FIFTHS = [7 * k % 12 for k in range(12)]
@@ -21,7 +23,7 @@ class ScaleComponent(ControlSurfaceComponent):
 	
 	#matrix = control_matrix(PlayableControl)
 
-	def __init__(self, control_surface = None, enabled = False, mode = "diatonic", *a, **k):
+	def __init__(self, control_surface: Optional["ControlSurfaceFacade"] = None, enabled = False, mode = "diatonic", *a, **k):
 		self._layout_set = False
 		self._modus_list = [Modus(MUSICAL_MODES[v], MUSICAL_MODES[v + 1]) for v in range(0, len(MUSICAL_MODES), 2)]
 		self._modus_names = [MUSICAL_MODES[v] for v in range(0, len(MUSICAL_MODES), 2)]
