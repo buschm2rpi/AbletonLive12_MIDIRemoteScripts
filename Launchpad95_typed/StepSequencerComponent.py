@@ -11,6 +11,9 @@ from .TrackControllerComponent import TrackControllerComponent
 import time
 from .ScaleComponent import ScaleComponent, MUSICAL_MODES, KEY_NAMES
 from .Settings import Settings
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .contracts import ControlSurfaceFacade
 # quantization button colours. this must remain of length 4.
 QUANTIZATION_MAP = [1, 0.5, 0.25, 0.125]  # 1/4 1/8 1/16 1/32
 QUANTIZATION_NAMES = ["1/4", "1/8", "1/16", "1/32"]
@@ -26,7 +29,7 @@ LONG_BUTTON_PRESS = 1.0
 
 class StepSequencerComponent(CompoundComponent):
 
-    def __init__(self, matrix, side_buttons, top_buttons, control_surface):
+    def __init__(self, matrix, side_buttons, top_buttons, control_surface: "ControlSurfaceFacade"):
         self._osd = None
         super(StepSequencerComponent, self).__init__()
         self._control_surface = control_surface
@@ -37,7 +40,7 @@ class StepSequencerComponent(CompoundComponent):
         # clip
         self._clip = None
         self._clip_slot = None
-        self._note_cache = []
+        self._note_cache: list = []
         self._playhead = 0
         self._new_clip_pages = 4
         # mode
@@ -53,8 +56,8 @@ class StepSequencerComponent(CompoundComponent):
         self._right_button = None
         # scale
         self._root_note = 36
-        self._chromatic_scale = []
-        self._diatonic_scale = []
+        self._chromatic_scale: list = []
+        self._diatonic_scale: list = []
         
         self._beat = 0
         # setup

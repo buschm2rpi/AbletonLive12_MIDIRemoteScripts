@@ -2,11 +2,14 @@ import time
 
 from _Framework.ButtonElement import ButtonElement
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .contracts import ControlSurfaceFacade
 
 STEPSEQ_MODE_MULTINOTE = 2
 class LoopSelectorComponent(ControlSurfaceComponent):
 
-    def __init__(self, step_sequencer, buttons, control_surface):
+    def __init__(self, step_sequencer, buttons, control_surface: "ControlSurfaceFacade"):
         ControlSurfaceComponent.__init__(self)
         self._control_surface = control_surface
         self.set_enabled(False)

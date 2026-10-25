@@ -21,14 +21,14 @@ import typing
 _TYPE_CHECKING = getattr(typing, "TYPE_CHECKING", False)
 
 if _TYPE_CHECKING:
-    from .contracts import HostApi
+    from .contracts import HostApi, ControlSurfaceFacade
 
 class MainSelectorComponent(ModeSelectorComponent):
 
 	""" Class that reassigns the button on the launchpad to different functions """
 
 
-	def __init__(self, matrix, top_buttons, side_buttons, config_button, osd, control_surface, note_repeat, host_api: "HostApi"):
+	def __init__(self, matrix, top_buttons, side_buttons, config_button, osd, control_surface: "ControlSurfaceFacade", note_repeat, host_api: "HostApi"):
 		#verify matrix dimentions
 		assert isinstance(matrix, ButtonMatrixElement)
 		assert ((matrix.width() == 8) and (matrix.height() == 8))

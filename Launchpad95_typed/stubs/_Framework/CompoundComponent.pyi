@@ -1,10 +1,11 @@
 """Type stub for ``_Framework.CompoundComponent`` (type-checking only)."""
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any, List, TypeVar
 
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 
+_ComponentT = TypeVar("_ComponentT", bound=ControlSurfaceComponent)
 
 class CompoundComponent(ControlSurfaceComponent):
     """A component made of sub-components."""
@@ -15,7 +16,7 @@ class CompoundComponent(ControlSurfaceComponent):
     def update_all(self) -> None:
         ...
 
-    def register_component(self, component: ControlSurfaceComponent) -> ControlSurfaceComponent:
+    def register_component(self, component: _ComponentT) -> _ComponentT:
         ...
 
     def register_components(self, *components: ControlSurfaceComponent) -> List[ControlSurfaceComponent]:

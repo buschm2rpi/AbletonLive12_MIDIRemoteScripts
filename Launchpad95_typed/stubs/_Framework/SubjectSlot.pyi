@@ -42,7 +42,7 @@ class SlotManager:
 
 def subject_slot(
     events: str, *a: Any, **k: Any
-) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+) -> Callable[[Callable[..., Any]], Any]:
     """Decorator: call the decorated method when the subject event fires."""
     ...
 

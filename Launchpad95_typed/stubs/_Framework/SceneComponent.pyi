@@ -11,6 +11,7 @@ from Live.Scene import Scene
 
 class SceneComponent(CompoundComponent):
     """A single scene in the session (launch/select/delete buttons)."""
+    clip_slot_component_type: Any
 
     def __init__(self, num_slots: int = 0,
                  tracks_to_use_callback: Optional[Callable[[], Any]] = None,

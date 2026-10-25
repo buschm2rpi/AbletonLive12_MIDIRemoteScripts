@@ -1,12 +1,15 @@
 from _Framework.SessionComponent import SessionComponent
 from .ClipSlotMK2 import ClipSlotMK2
 from _Framework.SceneComponent import SceneComponent
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+	from .contracts import ControlSurfaceFacade
 
 class SpecialSessionComponent(SessionComponent):
 
 	""" Special session subclass that handles ConfigurableButtons """
 
-	def __init__(self, num_tracks, num_scenes, stop_clip_buttons, control_surface, main_selector):
+	def __init__(self, num_tracks, num_scenes, stop_clip_buttons, control_surface: "ControlSurfaceFacade", main_selector):
 		self._stop_clip_buttons = stop_clip_buttons
 		self._control_surface = control_surface
 		self._main_selector = main_selector

@@ -8,6 +8,9 @@ from .PreciseButtonSliderElement import (
 	PreciseButtonSliderElement, SLIDER_MODE_VOLUME, SLIDER_MODE_PAN
 )
 from .Settings import Settings
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+	from .contracts import ControlSurfaceFacade
 
 
 def level_to_value(level):
@@ -27,7 +30,7 @@ class SubSelectorComponent(ModeSelectorComponent):
 
 	""" Class that handles different mixer modes """
 
-	def __init__(self, matrix, side_buttons, session, control_surface):
+	def __init__(self, matrix, side_buttons, session, control_surface: "ControlSurfaceFacade"):
 		assert isinstance(matrix, ButtonMatrixElement)
 		assert ((matrix.width() == 8) and (matrix.height() == 8))
 		assert isinstance(side_buttons, tuple)

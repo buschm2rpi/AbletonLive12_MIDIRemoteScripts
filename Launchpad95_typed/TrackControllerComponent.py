@@ -2,6 +2,9 @@
 from _Framework.MixerComponent import MixerComponent
 from _Framework.ButtonElement import ButtonElement
 import time
+from typing import TYPE_CHECKING, Optional
+if TYPE_CHECKING:
+	from .contracts import ControlSurfaceFacade
 
 
 class TrackControllerComponent(MixerComponent):
@@ -13,7 +16,7 @@ class TrackControllerComponent(MixerComponent):
 			enable/disable session_record
 	"""
 
-	def __init__(self, control_surface = None, implicit_arm = False, skin_name = "Session", enabled = False):
+	def __init__(self, control_surface: Optional["ControlSurfaceFacade"] = None, implicit_arm = False, skin_name = "Session", enabled = False):
 		self._prev_track_button = None
 		self._next_track_button = None
 		self._prev_scene_button = None

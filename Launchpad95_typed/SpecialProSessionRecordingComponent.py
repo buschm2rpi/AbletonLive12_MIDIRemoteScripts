@@ -3,11 +3,14 @@
 import Live
 from _Framework.ClipCreator import ClipCreator
 from _Framework.SessionRecordingComponent import SessionRecordingComponent
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .contracts import ControlSurfaceFacade
 _Q = Live.Song.Quantization
 
 class SpecialProSessionRecordingComponent(SessionRecordingComponent):
 
-    def __init__(self, target_track_component, control_surface, *a, **k):
+    def __init__(self, target_track_component, control_surface: "ControlSurfaceFacade", *a, **k):
         self._control_surface = control_surface
         self._target_track_component = target_track_component
         super(SpecialProSessionRecordingComponent, self).__init__(ClipCreator(), True, *a, **k)

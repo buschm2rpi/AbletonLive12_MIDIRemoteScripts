@@ -19,7 +19,8 @@ import typing
 _TYPE_CHECKING = getattr(typing, "TYPE_CHECKING", False)
 
 if _TYPE_CHECKING:
-    from .contracts import HostApi
+    from .contracts import HostApi, ControlSurfaceFacade
+    from .surface_core import SurfaceCore
 
 DO_COMBINE = Live.Application.combine_apcs()  # requires 8.2 & higher
 
@@ -56,7 +57,9 @@ STD_MSG_HEADER = (SYSEX_START,) + NOVATION_MANUFACTURER_ID + (2, )
 
 class LaunchpadBase(ControlSurface):
 
-	_active_instances = []
+	# Class-level annotation is evaluated at runtime (no `from __future__
+	# import annotations` here); typing is imported above, so this is safe.
+	_active_instances: typing.List["LaunchpadBase"] = []
 
 	# Hardware model flags. Class-level so the per-model subclasses
 	# (LP_MK1 / LP_MK2 / LP_MK3 / LP_X) can set them declaratively; the
@@ -92,6 +95,7 @@ class LaunchpadBase(ControlSurface):
 			self._wrote_user_byte = False
 			self._challenge = Live.Application.get_random_int(0, 400000000) & 2139062143
 			self._init_done = False
+			self._surface_core = None
 		# caller will send challenge and we will continue as challenge is received.
 
 	def init(self):
@@ -224,7 +228,8 @@ class LaunchpadBase(ControlSurface):
 			self._user_byte_write_button.send_value(0)
 			self._user_byte_write_button = None
 
-	def _combine_active_instances():
+	def _combine_active_instances():  # type: ignore[misc]
+		# py2-style staticmethod (assigned below); no `self` by design.
 		support_devices = False
 		for instance in LaunchpadBase._active_instances:
 			support_devices |= (instance._device_component is not None)
@@ -385,44 +390,23 @@ class LaunchpadBase(ControlSurface):
 		self._note_repeat.set_enabled(False)
 		self._note_repeat.set_note_repeat(self._c_instance.note_repeat)
 
+	# Phase 4b: SurfaceCore integration - delegate to facade while maintaining compatibility
+	def _get_surface_core(self) -> typing.Optional["SurfaceCore"]:
+		"""Get or create the SurfaceCore facade for this control surface."""
+		if getattr(self, '_surface_core', None) is None:
+			try:
+				from .surface_core import SurfaceCore
+				self._surface_core = SurfaceCore(self, getattr(self, '_c_instance', None))
+			except Exception:
+				self._surface_core = None
+		return self._surface_core
 
-# Phase 4b: SurfaceCore integration - delegate to facade while maintaining compatibility
-try:
-    from .surface_core import SurfaceCore
-except Exception:
-    SurfaceCore = None
+	@property
+	def core(self) -> typing.Union["SurfaceCore", "LaunchpadBase"]:
+		"""Access to the SurfaceCore facade."""
+		core = self._get_surface_core()
+		if core is not None:
+			return core
+		# Fallback to self if core not available
+		return self
 
-
-    def _get_surface_core(self):
-        """Get or create the SurfaceCore facade for this control surface."""
-        if not hasattr(self, '_surface_core') or self._surface_core is None:
-            try:
-                from .surface_core import SurfaceCore
-                self._surface_core = SurfaceCore(self, getattr(self, '_c_instance', None))
-            except Exception:
-                self._surface_core = None
-        return self._surface_core
-
-    @property
-    def core(self):
-        """Access to the SurfaceCore facade."""
-        core = self._get_surface_core()
-        if core is not None:
-            return core
-        # Fallback to self if core not available
-        return self
-
-
-    # Phase 4b: Initialize SurfaceCore facade
-    def __init__(self, *a, **k):
-        # Ensure control surface base init happens
-        try:
-            ControlSurface.__init__(self, *a, **k)
-        except Exception:
-            pass
-        # Initialize SurfaceCore facade
-        try:
-            from .surface_core import SurfaceCore
-            self._surface_core = SurfaceCore(self, getattr(self, '_c_instance', None))
-        except Exception:
-            self._surface_core = None

@@ -9,6 +9,9 @@ except ModuleNotFoundError:
 
 from .DeviceControllerStripServer import DeviceControllerStripServer
 from .Log import log
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .contracts import ControlSurfaceFacade
 
 non_returns = ["set_precision_mode", "set_stepless_mode", "shutdown",
                "update", "reset_if_no_parameter", "_button_value", "connect_to",
@@ -18,7 +21,7 @@ returning = ["set_enabled", "param_name", "param_value","__ne__"]
 
 
 class DeviceControllerStripProxy():
-    def __init__(self, buttons, control_surface, column, parent=None):
+    def __init__(self, buttons, control_surface: "ControlSurfaceFacade", column, parent=None):
         self._request_queue = queue.Queue()
         self._response_queue = queue.Queue()
         self.failed = False

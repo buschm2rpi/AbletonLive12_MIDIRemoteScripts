@@ -1,6 +1,9 @@
 from .ButtonSliderElement import ButtonSliderElement
-
 import time
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+	from .contracts import ControlSurfaceFacade
+
 SLIDER_MODE_OFF = 0
 SLIDER_MODE_TOGGLE = 1
 SLIDER_MODE_SLIDER = 2
@@ -15,7 +18,7 @@ SLIDER_MODE_BIG_ENUM = 5
 class DeviceControllerStrip(ButtonSliderElement):
 
 
-	def __init__(self, buttons, control_surface, column, parent = None):
+	def __init__(self, buttons, control_surface: "ControlSurfaceFacade", column, parent = None):
 		ButtonSliderElement.__init__(self, buttons)
 		self._control_surface = control_surface
 		self._column = column

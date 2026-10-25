@@ -1,10 +1,13 @@
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Framework.ButtonElement import ButtonElement
 import time
+from typing import TYPE_CHECKING, Optional
+if TYPE_CHECKING:
+	from .contracts import ControlSurfaceFacade
 
 class NoteEditorComponent(ControlSurfaceComponent):
 
-	def __init__(self, stepsequencer = None, matrix = None, control_surface = None):
+	def __init__(self, stepsequencer = None, matrix = None, control_surface: Optional["ControlSurfaceFacade"] = None):
 		ControlSurfaceComponent.__init__(self)
 		self.set_enabled(False)
 		self._stepsequencer = stepsequencer
