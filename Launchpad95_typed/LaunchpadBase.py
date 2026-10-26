@@ -55,6 +55,16 @@ STANDALONE_MODE = 0
 STD_MSG_HEADER = (SYSEX_START,) + NOVATION_MANUFACTURER_ID + (2, )
 
 
+def _grid_note_classic(row, column):
+	# classic Launchpad grid: row-major, 16 notes per row
+	return row * 16 + column
+
+
+def _grid_note_rgb(row, column):
+	# MK2 / MK3 / LPX grid: buttons are assigned "top to bottom"
+	return (81 - 10 * row) + column
+
+
 class LaunchpadBase(ControlSurface):
 
 	# Class-level annotation is evaluated at runtime (no `from __future__
@@ -70,6 +80,12 @@ class LaunchpadBase(ControlSurface):
 	_lpx = False
 	_mk2_rgb = False
 	_mk3_rgb = False
+
+	# Skin (button color palette): assigned by the subclass before
+	# _build_controls() runs — in __init__ for the per-model classes
+	# (LP_MK1 / LP_MK2 / LP_MK3 / LP_X), in init() for the auto-detecting
+	# Launchpad once the model is known.
+	_skin = None
 
 	@property
 	def host_api(self) -> "HostApi":
@@ -96,32 +112,22 @@ class LaunchpadBase(ControlSurface):
 			self._challenge = Live.Application.get_random_int(0, 400000000) & 2139062143
 			self._init_done = False
 			self._surface_core = None
-		# caller will send challenge and we will continue as challenge is received.
+		# construction continues in _build_controls(): eagerly for the
+		# per-model classes, once the challenge response identifies the
+		# model for the auto-detecting Launchpad.
 
-	def init(self):
-		#skip init if already done.
-		if self._init_done:
-			return
+	def _build_controls(self):
+		# second part of the __init__: builds the hardware controls and the
+		# main mode component. The hardware-specific configuration
+		# (``_side_notes``, ``_drum_notes``, ``_grid_note``,
+		# ``_top_button_cc_base``, ``_side_button_midi_type``) is provided by
+		# the subclass: as class attributes on the per-model classes
+		# (LP_MK1 / LP_MK2 / LP_MK3 / LP_X), as instance attributes on the
+		# auto-detecting Launchpad (set by its init()). The skin
+		# (``self._skin``) is likewise assigned by the subclass before this
+		# method is called.
 		self._init_done = True
-		
-		# second part of the __init__ after model has been identified using its challenge response
-		if self._mk3_rgb or self._lpx:
-			from .SkinMK2 import make_skin
-			self._skin = make_skin()
-			self._side_notes = (89, 79, 69, 59, 49, 39, 29, 19)
-			self._drum_notes = (20, 30, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126)
-		elif self._mk2_rgb:
-			from .SkinMK2 import make_skin
-			self._skin = make_skin()
-			self._side_notes = (89, 79, 69, 59, 49, 39, 29, 19)
-			#self._drum_notes = (20, 30, 31, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126)
-			self._drum_notes = (20, 30, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126)
-		else:
-			from .SkinMK1 import make_skin # @Reimport
-			self._skin = make_skin()
-			self._side_notes = (8, 24, 40, 56, 72, 88, 104, 120)
-			self._drum_notes = (41, 42, 43, 44, 45, 46, 47, 57, 58, 59, 60, 61, 62, 63, 73, 74, 75, 76, 77, 78, 79, 89, 90, 91, 92, 93, 94, 95, 105, 106, 107)
-		
+		assert self._skin is not None, "subclass must assign self._skin before _build_controls()"
 		with self.component_guard():
 			is_momentary = True
 			self._config_button = ButtonElement(is_momentary, MIDI_CC_TYPE, 0, 0, optimized_send_midi=False)
@@ -135,22 +141,14 @@ class LaunchpadBase(ControlSurface):
 			for row in range(8):
 				button_row = []
 				for column in range(8):
-					if self._mk2_rgb or self._mk3_rgb or self._lpx:
-						# for mk2 buttons are assigned "top to bottom"
-						midi_note = (81 - (10 * row)) + column
-					else:
-						midi_note = row * 16 + column
+					midi_note = self._grid_note(row, column)
 					button = ConfigurableButtonElement(is_momentary, MIDI_NOTE_TYPE, 0, midi_note, skin = self._skin, control_surface = self)
 					button.name = str(column) + '_Clip_' + str(row) + '_Button'
 					button_row.append(button)
 				matrix.add_row(tuple(button_row))
 
-			if self._mk3_rgb or self._lpx :
-				top_buttons = [ConfigurableButtonElement(is_momentary, MIDI_CC_TYPE, 0, 91 + index, skin = self._skin) for index in range(8)]
-				side_buttons = [ConfigurableButtonElement(is_momentary, MIDI_CC_TYPE, 0, self._side_notes[index], skin = self._skin) for index in range(8)]
-			else:
-				top_buttons = [ConfigurableButtonElement(is_momentary, MIDI_CC_TYPE, 0, 104 + index, skin = self._skin) for index in range(8)]
-				side_buttons = [ConfigurableButtonElement(is_momentary, MIDI_NOTE_TYPE, 0, self._side_notes[index], skin = self._skin) for index in range(8)]
+			top_buttons = [ConfigurableButtonElement(is_momentary, MIDI_CC_TYPE, 0, self._top_button_cc_base + index, skin = self._skin) for index in range(8)]
+			side_buttons = [ConfigurableButtonElement(is_momentary, self._side_button_midi_type, 0, self._side_notes[index], skin = self._skin) for index in range(8)]
 				
 			top_buttons[0].name = 'Bank_Select_Up_Button'
 			top_buttons[1].name = 'Bank_Select_Down_Button'
@@ -189,14 +187,6 @@ class LaunchpadBase(ControlSurface):
 			self.request_rebuild_midi_map()
 			# and request update 
 			self._selector.update()
-			if self._lpx:
-				self.log_message("LaunchPad95 (LPX) Loaded !")
-			elif self._mk3_rgb:
-				self.log_message("LaunchPad95 (mk3) Loaded !")
-			elif self._mk2_rgb:
-				self.log_message("LaunchPad95 (mk2) Loaded !")
-			else:
-				self.log_message("LaunchPad95 (classic) Loaded !")
 
 	def disconnect(self):
 		self._suppress_send_midi = True
@@ -209,17 +199,7 @@ class LaunchpadBase(ControlSurface):
 			self._config_button.remove_value_listener(self._config_value)
 		ControlSurface.disconnect(self)
 		self._suppress_send_midi = False
-		if self._lpx:
-			# lpx needs disconnect string sent
-			self._send_midi(STD_MSG_HEADER + (LP_X_ID, 14, 0, SYSEX_END))
-			self._send_midi(STD_MSG_HEADER + (LP_X_ID, FIRMWARE_MODE_COMMAND, STANDALONE_MODE, SYSEX_END))
-		elif self._mk3_rgb:
-			# launchpad mk2 needs disconnect string sent
-			self._send_midi(STD_MSG_HEADER + (LP_MINI_MK3_ID, 14, 0, SYSEX_END))
-			self._send_midi(STD_MSG_HEADER + (LP_MINI_MK3_ID, FIRMWARE_MODE_COMMAND, STANDALONE_MODE, SYSEX_END))
-		elif self._mk2_rgb:
-			# launchpad mk2 needs disconnect string sent
-			self._send_midi((240, 0, 32, 41, 2, 24, 64, 247))
+		self._send_disconnect_message()
 		if self._config_button is not None:
 			self._config_button.send_value(32)#Send enable flashing led config message to LP
 			self._config_button.send_value(0)
@@ -230,17 +210,14 @@ class LaunchpadBase(ControlSurface):
 
 	def _combine_active_instances():  # type: ignore[misc]
 		# py2-style staticmethod (assigned below); no `self` by design.
-		support_devices = False
-		for instance in LaunchpadBase._active_instances:
-			support_devices |= (instance._device_component is not None)
 		offset = 0
 		for instance in LaunchpadBase._active_instances:
-			instance._activate_combination_mode(offset, support_devices)
+			instance._activate_combination_mode(offset)
 			offset += instance._selector._session.width()
 
 	_combine_active_instances = staticmethod(_combine_active_instances)
 
-	def _activate_combination_mode(self, track_offset, support_devices):
+	def _activate_combination_mode(self, track_offset):
 		if(Settings.STEPSEQ__LINK_WITH_SESSION):
 			self._selector._stepseq.link_with_step_offset(track_offset)
 		if(Settings.SESSION__LINK):
@@ -263,57 +240,6 @@ class LaunchpadBase(ControlSurface):
 	def refresh_state(self):
 		ControlSurface.refresh_state(self)
 		self.schedule_message(5, self._update_hardware)
-
-	def handle_sysex(self, midi_bytes):
-		if len(midi_bytes) >= 10 and midi_bytes[:8] == (240, 126, 0, 6, 2, 0, 32, 41): #0,32,41=novation
-			if len(midi_bytes) >= 12 and midi_bytes[8:10] == (19,1):
-				self._mk3_rgb = True
-				#programmer mode
-				self._send_midi(STD_MSG_HEADER + (LP_MINI_MK3_ID, 14, 1, SYSEX_END))
-				#led feedback: internal off, external on
-				self._send_midi(STD_MSG_HEADER + (LP_MINI_MK3_ID, 10, 0, 1, SYSEX_END))
-				#disable sleep mode
-				self._send_midi(STD_MSG_HEADER + (LP_MINI_MK3_ID, 9, 1, SYSEX_END))
-				self._suppress_send_midi = False
-				self.set_enabled(True)
-				self.init()
-			elif len(midi_bytes) >= 12 and midi_bytes[8:10] == (3,1):
-				self._lpx = True
-				#programmer mode
-				self._send_midi(STD_MSG_HEADER + (LP_X_ID, 14, 1, SYSEX_END))
-				#led feedback: internal off, external on
-				self._send_midi(STD_MSG_HEADER + (LP_X_ID, 10, 0, 1, SYSEX_END))
-				#disable sleep mode
-				self._send_midi(STD_MSG_HEADER + (LP_X_ID, 9, 1, SYSEX_END))
-				self._suppress_send_midi = False
-				self.set_enabled(True)
-				self.init()
-			else:
-				ControlSurface.handle_sysex(self,midi_bytes)
-				#self.log_message("OTHER NOVATION")
-
-		# MK2 has different challenge and params
-		elif len(midi_bytes) == 10 and midi_bytes[:7] == (240, 0, 32, 41, 2, 24, 64):
-			response = int(midi_bytes[7])
-			response += int(midi_bytes[8]) << 8
-			if response == Live.Application.encrypt_challenge2(self._challenge):
-				self.log_message("Challenge Response ok (mk2)")
-				self._mk2_rgb = True
-				self._suppress_send_midi = False
-				self.set_enabled(True)
-				self.init()
-		#MK1 Challenge
-		elif len(midi_bytes) == 8 and midi_bytes[1:5] == (0, 32, 41, 6):
-			response = int(midi_bytes[5])
-			response += int(midi_bytes[6]) << 8
-			if response == Live.Application.encrypt_challenge2(self._challenge):
-				self.log_message("Challenge Response ok (mk1)")
-				self._mk2_rgb = False
-				self.init()
-				self._suppress_send_midi = False
-				self.set_enabled(True)
-		else:
-			ControlSurface.handle_sysex(self,midi_bytes)
 
 	def build_midi_map(self, midi_map_handle):
 		ControlSurface.build_midi_map(self, midi_map_handle)
@@ -346,17 +272,10 @@ class LaunchpadBase(ControlSurface):
 		self._suppress_send_midi = False
 		self._send_challenge()
 
-	def _send_challenge(self):
-		# send challenge for all models to allow to detect which one is actually plugged
-		# mk3 and LPX
-		self._send_midi(SYSEX_IDENTITY_REQUEST_MESSAGE)
-		# mk2
-		challenge_bytes = tuple([ self._challenge >> 8 * index & 127 for index in range(4) ])
-		self._send_midi((240, 0, 32, 41, 2, 24, 64) + challenge_bytes + (247,))
-		# mk1's
-		for index in range(4):
-			challenge_byte = self._challenge >> 8 * index & 127
-			self._send_midi((176, 17 + index, challenge_byte))
+	def _send_disconnect_message(self):
+		# hook for the hardware-specific quit SYSEX sent on disconnect;
+		# the classic (mk1) pad needs none, so the base sends nothing.
+		pass
 
 	def _user_byte_value(self, value):
 		assert (value in range(128))
