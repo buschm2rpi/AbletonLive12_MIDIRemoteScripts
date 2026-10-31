@@ -164,7 +164,10 @@ if TYPE_CHECKING:
         """Union of the ports our components actually use. Type component
         constructor parameters against this (or a narrower protocol above)
         instead of the concrete _Framework.ControlSurface."""
-        host_api: HostApi
+        # The host object (c_instance). Read-only: components must not
+        # replace the host; LaunchpadBase exposes it as a read-only property.
+        @property
+        def host_api(self) -> HostApi: ...
         @property
         def controls(self) -> List[ControlElement]: ...
         def show_message(self, message: str) -> None: ...
