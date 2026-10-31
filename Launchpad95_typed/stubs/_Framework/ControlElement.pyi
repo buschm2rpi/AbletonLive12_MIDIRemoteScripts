@@ -19,7 +19,7 @@ class ControlElement:
     def disconnect(self) -> None:
         ...
 
-    def send_midi(self, message: bytes) -> None:
+    def send_midi(self, message: tuple[int, ...]) -> None:
         ...
 
     def clear_send_cache(self) -> None:

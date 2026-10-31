@@ -5,6 +5,8 @@ The model is known statically, so full construction happens eagerly in
 challenge is sent (4 CC bytes) and the validated response enables MIDI out.
 """
 
+from typing import Any
+
 import Live
 from _Framework.ControlSurface import ControlSurface
 from _Framework.InputControlElement import MIDI_NOTE_TYPE
@@ -25,25 +27,25 @@ class LP_MK1(LaunchpadBase):
 	# (_mk2_rgb = _mk3_rgb = _lpx = False, inherited from LaunchpadBase)
 
 	# hardware-specific configuration, consumed by LaunchpadBase._build_controls()
-	_side_notes = (8, 24, 40, 56, 72, 88, 104, 120)
-	_drum_notes = (41, 42, 43, 44, 45, 46, 47, 57, 58, 59, 60, 61, 62, 63, 73, 74, 75, 76, 77, 78, 79, 89, 90, 91, 92, 93, 94, 95, 105, 106, 107)
+	_side_notes: tuple[int, ...] = (8, 24, 40, 56, 72, 88, 104, 120)
+	_drum_notes: tuple[int, ...] = (41, 42, 43, 44, 45, 46, 47, 57, 58, 59, 60, 61, 62, 63, 73, 74, 75, 76, 77, 78, 79, 89, 90, 91, 92, 93, 94, 95, 105, 106, 107)
 	_grid_note = staticmethod(_grid_note_classic)
-	_top_button_cc_base = 104
-	_side_button_midi_type = MIDI_NOTE_TYPE
+	_top_button_cc_base: int = 104
+	_side_button_midi_type: int = MIDI_NOTE_TYPE
 
-	def __init__(self, *a, **k):
+	def __init__(self, *a: Any, **k: Any) -> None:
 		super().__init__(*a, **k)
 		self._skin = make_skin()
 		self._build_controls()
 		self.log_message("LaunchPad95 (classic) Loaded !")
 
-	def _send_challenge(self):
+	def _send_challenge(self) -> None:
 		# mk1's challenge: 4 CC bytes on channel 0
 		for index in range(4):
 			challenge_byte = self._challenge >> 8 * index & 127
 			self._send_midi((176, 17 + index, challenge_byte))
 
-	def handle_sysex(self, midi_bytes):
+	def handle_sysex(self, midi_bytes: tuple[int, ...]) -> None:
 		if len(midi_bytes) == 8 and midi_bytes[1:5] == (0, 32, 41, 6):
 			response = int(midi_bytes[5])
 			response += int(midi_bytes[6]) << 8

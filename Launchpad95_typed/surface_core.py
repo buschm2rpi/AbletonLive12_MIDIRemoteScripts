@@ -39,7 +39,7 @@ class HostApiAdapter:
     def __init__(self, c_instance: Any) -> None:
         self._c_instance = c_instance
     
-    def send_midi(self, midi_bytes: bytes) -> None:
+    def send_midi(self, midi_bytes: tuple[int, ...]) -> None:
         if self._c_instance is not None:
             self._c_instance.send_midi(midi_bytes)
     
@@ -119,7 +119,7 @@ class MidiTransportAdapter:
     def __init__(self, control_surface: Any) -> None:
         self._control_surface = control_surface
     
-    def send(self, midi_bytes: bytes, optimized: bool = True) -> bool:
+    def send(self, midi_bytes: tuple[int, ...], optimized: bool = True) -> bool:
         if hasattr(self._control_surface, '_send_midi'):
             result = self._control_surface._send_midi(midi_bytes, optimized=optimized)
             return bool(result) if result is not None else True
@@ -128,11 +128,11 @@ class MidiTransportAdapter:
             return True
         return False
     
-    def receive(self, midi_bytes: bytes) -> None:
+    def receive(self, midi_bytes: tuple[int, ...]) -> None:
         if hasattr(self._control_surface, 'receive_midi'):
             self._control_surface.receive_midi(midi_bytes)
     
-    def is_sysex(self, midi_bytes: bytes) -> bool:
+    def is_sysex(self, midi_bytes: tuple[int, ...]) -> bool:
         if hasattr(self._control_surface, 'is_sysex_message'):
             return bool(self._control_surface.is_sysex_message(midi_bytes))
         if midi_bytes:
@@ -146,11 +146,11 @@ class MidiDispatcherAdapter:
     def __init__(self, control_surface: Any) -> None:
         self._control_surface = control_surface
     
-    def handle_nonsysex(self, midi_bytes: bytes) -> None:
+    def handle_nonsysex(self, midi_bytes: tuple[int, ...]) -> None:
         if hasattr(self._control_surface, 'handle_nonsysex'):
             self._control_surface.handle_nonsysex(midi_bytes)
     
-    def handle_sysex(self, midi_bytes: bytes) -> None:
+    def handle_sysex(self, midi_bytes: tuple[int, ...]) -> None:
         if hasattr(self._control_surface, 'handle_sysex'):
             self._control_surface.handle_sysex(midi_bytes)
 

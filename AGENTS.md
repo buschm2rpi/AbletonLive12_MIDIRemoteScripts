@@ -6,7 +6,8 @@ Compact instructions for OpenCode sessions. Only include guidance that would be 
 ## Repo overview
 - Collection of Ableton Live 12.4 MIDI Remote Scripts (Python). Each top-level directory is a controller script that Live loads directly (e.g., `Launchpad/`, `Push2/`, `APC40/`, `Launchpad95_typed/`).
 - Runtime deps: Ableton Live's internal `_Framework/` and `ableton/` packages exist only inside Live. They are **not** pip-installable. Any execution outside Live requires fakes (see Testing).
-- Pure Python; no root build/lint/typecheck/formatter config, `pyproject.toml`, or `Makefile`.
+- Target runtime is **Ableton Live 12 only** (Python 3.11+). Modern Python 3 syntax (type annotations, f-strings, etc.) is fine; do not maintain Python 2 compatibility.
+- Pure Python; no root build/lint/typecheck/formatter config, `pyproject.toml`, or `Makefile` (exception: `Launchpad95_typed/mypy.ini` targets Python 3.11).
 
 ## Entry points & structure
 - Each script must expose `create_instance(c_instance)` and `get_capabilities()` in its `__init__.py` (Ableton API). Follow existing patterns in the specific controller directory you edit.
@@ -27,7 +28,7 @@ Compact instructions for OpenCode sessions. Only include guidance that would be 
 
 ## Operational gotchas
 - `copy_to.sh` is macOS-specific (copies to `~/Music/Ableton/User Library/Remote Scripts/`). Do not run as-is on Linux; adjust paths if needed.
-- When editing, preserve Python 2/3 compatibility patterns used in that file (e.g., `from __future__ import with_statement`, `xrange`/`imap` polyfills) — this is legacy Ableton script style.
+- Python 3.11+ only (Ableton Live 12 is the only supported host). Legacy py2-style patterns in older files (`from __future__ import with_statement`, `xrange`/`imap` polyfills) may be left in place when editing, but do not add them to new code — modern Python 3 syntax and type annotations are fine.
 - Changes must stay consistent with existing indentation, naming, and style in the target directory. Do not assume new tests are expected outside `Launchpad95_typed/`.
 
 ## Highest-value references

@@ -43,7 +43,7 @@ class Launchpad(LaunchpadBase):
 	/ ``LP_MK3`` / ``LP_X`` instead.
 	"""
 
-	def init(self):
+	def init(self) -> None:
 		#skip init if already done.
 		if self._init_done:
 			return
@@ -84,7 +84,7 @@ class Launchpad(LaunchpadBase):
 		else:
 			self.log_message("LaunchPad95 (classic) Loaded !")
 
-	def _send_challenge(self):
+	def _send_challenge(self) -> None:
 		# send challenge for all models to allow to detect which one is actually plugged
 		# mk3 and LPX
 		self._send_midi(SYSEX_IDENTITY_REQUEST_MESSAGE)
@@ -96,7 +96,7 @@ class Launchpad(LaunchpadBase):
 			challenge_byte = self._challenge >> 8 * index & 127
 			self._send_midi((176, 17 + index, challenge_byte))
 
-	def _send_disconnect_message(self):
+	def _send_disconnect_message(self) -> None:
 		# the model is only known at runtime (from the challenge response),
 		# so dispatch on the model flags set by handle_sysex()
 		if self._lpx:
@@ -111,7 +111,7 @@ class Launchpad(LaunchpadBase):
 			# launchpad mk2 needs disconnect string sent
 			self._send_midi((240, 0, 32, 41, 2, 24, 64, 247))
 
-	def handle_sysex(self, midi_bytes):
+	def handle_sysex(self, midi_bytes: tuple[int, ...]) -> None:
 		if len(midi_bytes) >= 10 and midi_bytes[:8] == (240, 126, 0, 6, 2, 0, 32, 41): #0,32,41=novation
 			if len(midi_bytes) >= 12 and midi_bytes[8:10] == (19,1):
 				self._mk3_rgb = True

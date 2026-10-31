@@ -115,20 +115,23 @@ class ControlSurface(Subject, SlotManager):
         ...
 
     # -- MIDI receive ------------------------------------------------------
-    def receive_midi(self, midi_bytes: bytes) -> None:
+    # Live delivers incoming MIDI messages as tuples of ints (see the
+    # reconstructed fake ``handle_sysex`` and the per-model challenge
+    # comparisons, e.g. ``midi_bytes[:7] == (240, 0, 32, 41, ...)``).
+    def receive_midi(self, midi_bytes: tuple[int, ...]) -> None:
         ...
 
-    def is_sysex_message(self, midi_bytes: bytes) -> bool:
+    def is_sysex_message(self, midi_bytes: tuple[int, ...]) -> bool:
         ...
 
-    def handle_nonsysex(self, midi_bytes: bytes) -> None:
+    def handle_nonsysex(self, midi_bytes: tuple[int, ...]) -> None:
         ...
 
-    def handle_sysex(self, midi_bytes: bytes) -> None:
+    def handle_sysex(self, midi_bytes: tuple[int, ...]) -> None:
         ...
 
     # -- MIDI send ---------------------------------------------------------
-    def _send_midi(self, midi_event_bytes: bytes,
+    def _send_midi(self, midi_event_bytes: tuple[int, ...],
                    optimized: Optional[bool] = True) -> bool:
         ...
 

@@ -23,7 +23,7 @@ class MidiRemoteScript:
     def application(self) -> Application:
         ...
 
-    def send_midi(self, midi_bytes: bytes) -> None:
+    def send_midi(self, midi_bytes: tuple[int, ...]) -> None:
         ...
 
     def show_message(self, message: str) -> None:
