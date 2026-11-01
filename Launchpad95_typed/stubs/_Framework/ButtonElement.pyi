@@ -77,6 +77,12 @@ class ButtonElement(InputControlElement):
     def turn_off(self) -> None:
         ...
 
+    def set_on_off_values(self, on_value: Any, off_value: Optional[Any] = None) -> None:
+        """Set the on/off skin colors (Live 12 API; absent from the
+        decompiled snapshot, present on ButtonElement and on the
+        script's ConfigurableButtonElement)."""
+        ...
+
     def receive_value(self, value: int) -> None:
         ...
 

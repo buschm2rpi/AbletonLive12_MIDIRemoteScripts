@@ -15,6 +15,11 @@ from Live.Track import Track
 class SessionComponent(CompoundComponent):
     """The session view (clip launch grid, bank scrolling, ...)."""
 
+    # Declared by the real SessionComponent.__init__ (mirrors the test fake).
+    _num_tracks: int
+    _num_scenes: int
+    _scenes: List[SceneComponent]
+
     def __init__(self, num_tracks: int = 0, num_scenes: int = 0,
                  auto_name: bool = False, enable_skinning: bool = False,
                  *a: Any, **k: Any) -> None:
@@ -124,6 +129,9 @@ class SessionComponent(CompoundComponent):
         ...
 
     def height(self) -> int:
+        ...
+
+    def _do_show_highlight(self) -> None:
         ...
 
     def track_offset(self) -> int:
