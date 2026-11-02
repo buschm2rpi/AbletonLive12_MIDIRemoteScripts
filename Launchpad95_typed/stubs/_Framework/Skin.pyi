@@ -1,7 +1,7 @@
 """Type stub for ``_Framework.Skin`` (type-checking only)."""
 from __future__ import annotations
 
-from typing import Any, Iterator, Tuple
+from typing import Any, Hashable, Iterator, Tuple
 
 
 class SkinColorMissingError(Exception):
@@ -14,9 +14,11 @@ class Skin:
     def __init__(self, colors: Any = None, *a: Any, **k: Any) -> None:
         ...
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: Hashable) -> Any:
         """The color for ``key`` — a ``Color`` (RGB skins) or an ``Rgb``
-        value (MK1 skins); raises ``SkinColorMissingError`` if absent."""
+        value (MK1 skins). Dict-lookup semantics: keys are str color
+        paths, so any other hashable key raises
+        ``SkinColorMissingError``."""
         ...
 
     def iteritems(self) -> Iterator[Tuple[str, Any]]:

@@ -47,7 +47,23 @@ class DummyUndoStepHandler:
         ...
 
 
-class ButtonElement(InputControlElement):
+class ButtonElementMixin:
+    """Boolean on/off fallback (the real ButtonElement also mixes it into
+    its ProxiedInterface). ``set_light`` here takes a truthy/falsy, not a
+    skin color name — this is what ``super(ButtonElement, self).set_light``
+    resolves to when a skin lookup fails."""
+
+    def set_light(self, is_turned_on: bool) -> None:
+        ...
+
+    def turn_on(self) -> None:
+        ...
+
+    def turn_off(self) -> None:
+        ...
+
+
+class ButtonElement(InputControlElement, ButtonElementMixin):
     """A momentary/sustain button mapped to a MIDI note or CC."""
 
     _skin: Optional[Skin]
@@ -68,13 +84,9 @@ class ButtonElement(InputControlElement):
         ...
 
     def set_light(self, value: Any) -> None:
-        """Light the button with a skin color name, Color, or MIDI value."""
-        ...
-
-    def turn_on(self) -> None:
-        ...
-
-    def turn_off(self) -> None:
+        """Light the button with a skin color name, Color, or MIDI value;
+        unknown skin values fall back to the mixin's boolean on/off
+        path."""
         ...
 
     def set_on_off_values(self, on_value: Any, off_value: Optional[Any] = None) -> None:
