@@ -1,9 +1,9 @@
 import os
 from datetime import datetime
 
-LOGGING=True
-LOG_DIRECTORY = "/tmp/Launchpad95_typed"
-LOG_FILE = LOG_DIRECTORY + "/log.txt"
+LOGGING: bool = True
+LOG_DIRECTORY: str = "/tmp/Launchpad95_typed"
+LOG_FILE: str = LOG_DIRECTORY + "/log.txt"
 
 if LOGGING:
     try:
@@ -17,9 +17,9 @@ if LOGGING:
     with open(LOG_FILE, 'a') as f:
         f.write('====================\n')
 
-log_num = 0
+log_num: int = 0
 
-def log(message):
+def log(message: str | list[str]) -> None:
     if LOGGING:
         with open(LOG_FILE, 'a') as f:
             if type(message) == list:
