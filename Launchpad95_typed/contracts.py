@@ -158,6 +158,17 @@ if TYPE_CHECKING:
         def suppressing_rebuild_requests(self) -> Iterator[None]: ...
 
     # ------------------------------------------------------------------
+    # Note repeat (host object driven by NoteRepeatComponent)
+    # ------------------------------------------------------------------
+    class NoteRepeatShape(Protocol):
+        """Minimal structural view of the note-repeat object used by
+        NoteRepeatComponent: it only touches repeat_rate and enabled, on
+        either Live's real NoteRepeat (from c_instance.note_repeat) or the
+        component's DummyNoteRepeat stand-in."""
+        repeat_rate: float
+        enabled: bool
+
+    # ------------------------------------------------------------------
     # Aggregate facade: what our components may call on the surface
     # ------------------------------------------------------------------
     class ControlSurfaceFacade(Protocol):
@@ -202,6 +213,7 @@ try:
         'ComponentRegistry', 'ComponentLifecycle', 'TaskScheduler',
         'SongStateListener', 'DeviceLockManager', 'SessionHighlighter',
         'ReentrancyGuard', 'ControlSurfaceFacade',
+        'NoteRepeatShape',
         'SurfaceCore', 'ControlSurfaceCore'
     ]
 except Exception:
