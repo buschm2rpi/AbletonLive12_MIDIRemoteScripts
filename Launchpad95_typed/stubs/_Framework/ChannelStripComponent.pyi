@@ -24,7 +24,10 @@ class ChannelStripComponent(ControlSurfaceComponent):
     def reset_button_on_exchange(self, button: ButtonElement) -> None:
         ...
 
-    def set_send_controls(self, controls: Optional[Sequence[ControlElement]]) -> None:
+    def set_default_buttons(self, select_button=None, mute_button=None, solo_button=None, arm_button=None, crossfade_toggle=None) -> None:
+        ...
+
+    def set_send_controls(self, controls: Optional[Sequence[Optional[ControlElement]]]) -> None:
         ...
 
     def set_pan_control(self, control: Optional[ControlElement]) -> None:

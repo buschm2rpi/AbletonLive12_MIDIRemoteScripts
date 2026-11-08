@@ -15,6 +15,7 @@ class ModeSelectorComponent(ControlSurfaceComponent):
     _modes_heap: List[Tuple[int, Any, Any]]
     # The buttons driving the modes (set via set_mode_buttons()).
     _modes_buttons: List[ButtonElement]
+    _mode_index: int
 
     def __init__(self, *a: Any, **k: Any) -> None:
         ...

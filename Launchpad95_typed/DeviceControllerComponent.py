@@ -1,6 +1,8 @@
 from _Framework.DeviceComponent import DeviceComponent
 from _Framework.ButtonElement import ButtonElement
+from _Framework.ButtonMatrixElement import ButtonMatrixElement
 from .DeviceControllerStripProxy import DeviceControllerStripProxy
+from .M4LInterface import M4LInterface
 import time
 import Live
 from .Settings import Settings
@@ -13,44 +15,47 @@ class DeviceControllerComponent(DeviceComponent):
     __module__ = __name__
     __doc__ = ''
 
-    def __init__(self, control_surface: "ControlSurfaceFacade", name="device_component",
-        is_enabled=False, matrix=None, side_buttons=None, top_buttons=None):
-        self._control_surface = control_surface
-        self.name = name
-        self._device = None
-        self._matrix = matrix
-        self._selected_track = None
+    def __init__(self, control_surface: "ControlSurfaceFacade", name: str = "device_component",
+        is_enabled: bool = False, matrix: ButtonMatrixElement | None = None,
+        side_buttons: tuple[ButtonElement, ...] | None = None,
+        top_buttons: tuple[ButtonElement, ...] | None = None) -> None:
+        self._control_surface: "ControlSurfaceFacade" = control_surface
+        self.name: str = name
+        self._device: Live.Device.Device | None = None
+        self._matrix: ButtonMatrixElement | None = matrix
+        self._selected_track: Live.Track.Track | None = None
 
         # Track navigation buttons
-        self._prev_track_button = None
-        self._next_track_button = None
+        self._prev_track_button: ButtonElement | None = None
+        self._next_track_button: ButtonElement | None = None
         # Track Device navigation buttons
-        self._prev_device_button = None
-        self._next_device_button = None
+        self._prev_device_button: ButtonElement | None = None
+        self._next_device_button: ButtonElement | None = None
         # Device Bank navigation buttons
-        self._prev_bank_button = None
-        self._next_bank_button = None
+        self._prev_bank_button: ButtonElement | None = None
+        self._next_bank_button: ButtonElement | None = None
 
         # Precision/stepless logic
-        self._mode_toggle_button = None
-        self._last_mode_toggle_button_press = time.time()
-        self._precision_mode = False
-        self._stepless_mode = Settings.DEVICE_CONTROLLER__STEPLESS_MODE
+        self._mode_toggle_button: ButtonElement | None = None
+        self._last_mode_toggle_button_press: float = time.time()
+        self._precision_mode: bool = False
+        self._stepless_mode: bool = Settings.DEVICE_CONTROLLER__STEPLESS_MODE
 
         # Lock logic
-        self._lock_button_slots = [None, None, None, None]
-        self._lock_buttons = [None, None, None, None]
-        self._locked_devices = [None, None, None, None]
-        self._locked_device_index = None
+        self._lock_button_slots: list[ButtonElement | None] = [None, None, None, None]
+        self._lock_buttons: list[ButtonElement | None] = [None, None, None, None]
+        self._locked_devices: list[Live.Device.Device | None] = [None, None, None, None]
+        self._locked_device_index: int | None = None
         self._lock_buttons = [None, None, None, None]
 
-        self._locked_device_bank = [0, 0, 0, 0]
-        self._lock_button_press = [0, 0, 0, 0]
+        self._locked_device_bank: list[int] = [0, 0, 0, 0]
+        self._lock_button_press: list[float] = [0, 0, 0, 0]
         self._locked_devices = [None, None, None, None]
 
-        self._is_active = False
-        self._force = True
-        self._osd = None
+        self._is_active: bool = False
+        self._force: bool = True
+        self._osd: M4LInterface | None = None
+        self._parameter_controls: list[DeviceControllerStripProxy] | None = None
 
         self._control_surface.application().view.add_is_view_visible_listener(
             'Detail', self._on_detail_view_changed)
@@ -61,7 +66,7 @@ class DeviceControllerComponent(DeviceComponent):
         DeviceComponent.__init__(self)
 
         # Sliders
-        self._sliders: list = []
+        self._sliders: list[DeviceControllerStripProxy] | tuple[DeviceControllerStripProxy, ...] = []
         if matrix is not None:
             self.set_matrix(matrix)
         self.set_enabled(is_enabled)
@@ -118,7 +123,7 @@ class DeviceControllerComponent(DeviceComponent):
         for slider in self._sliders:
             slider.shutdown()
 
-    def set_matrix(self, matrix):
+    def set_matrix(self, matrix: ButtonMatrixElement | None) -> None:
         self._matrix = matrix
         if self._matrix:
             self._sliders = []
@@ -136,10 +141,10 @@ class DeviceControllerComponent(DeviceComponent):
             self._sliders = []
 
     @property
-    def _is_locked_to_device(self):
+    def _is_locked_to_device(self) -> bool:
         return self._locked_device_index is not None
 
-    def set_enabled(self, active):
+    def set_enabled(self, active: bool) -> bool:  # type: ignore[override]  # base stub returns None; this override returns True (consumers ignore it)
         if active:
             self._force = True
             self.on_selected_track_changed()
@@ -151,16 +156,17 @@ class DeviceControllerComponent(DeviceComponent):
         DeviceComponent.set_enabled(self, active)
         return True
 
-    def _on_detail_view_changed(self):
+    def _on_detail_view_changed(self) -> None:
         self.update()
 
-    def _on_views_changed(self):
+    def _on_views_changed(self) -> None:
         self.update()
 
-    def set_osd(self, osd):
+    def set_osd(self, osd: M4LInterface | None) -> None:
         self._osd = osd
 
-    def _update_OSD(self):
+    def _update_OSD(self) -> None:
+        assert self._parameter_controls is not None
         if self._osd is not None:
             self._osd.mode = "Device Controller"
             i = 0
@@ -193,6 +199,7 @@ class DeviceControllerComponent(DeviceComponent):
             else:
                 self._osd.info[0] = " "
             try:
+                assert self._device is not None  # None is handled by the except below, as before
                 name = self._device.name
                 if name == "":
                     name = "(unamed device)"
@@ -205,7 +212,7 @@ class DeviceControllerComponent(DeviceComponent):
             self._osd.update()
 
     # DEVICE SELECTION
-    def _on_device_changed(self):
+    def _on_device_changed(self) -> None:
         if not self._is_locked_to_device:
             self._selected_track = self.song().view.selected_track
             self.set_device(self.song().appointed_device)
@@ -213,24 +220,26 @@ class DeviceControllerComponent(DeviceComponent):
             if self.is_enabled():
                 self.update()
 
-    def on_selected_track_changed(self):
+    def on_selected_track_changed(self) -> None:
         if not self._is_locked_to_device:
             self._selected_track = self.song().view.selected_track
+            assert self._selected_track is not None
             if (self._selected_track.view.selected_device):
-                self.set_device(self._selected_track.view.selected_device)
+                self.set_device(self._selected_track.view.selected_device)  # type: ignore[arg-type]
             else:
                 self.select_first_device()
             if self.is_enabled():
                 self.update()
 
-    def select_first_device(self):
+    def select_first_device(self) -> None:
         track = self.song().view.selected_track
+        assert track is not None
         if (track.devices is not None and len(track.devices) > 0):
             device_to_select = track.devices[0]
             self.song().view.select_device(device_to_select)
             self.set_device(device_to_select)
 
-    def set_device(self, device):
+    def set_device(self, device: Live.Device.Device | None) -> None:
         if (device != self._device):
             if self._number_of_parameter_banks() <= self._bank_index:
                 self._bank_index = 0
@@ -238,7 +247,7 @@ class DeviceControllerComponent(DeviceComponent):
             self.set_device_view()
             DeviceComponent.set_device(self, device)
 
-    def set_device_view(self):
+    def set_device_view(self) -> None:
         view = self.application().view
         if not view.is_view_visible('Detail') or not view.is_view_visible(
             'Detail/DeviceChain'):
@@ -246,7 +255,7 @@ class DeviceControllerComponent(DeviceComponent):
             view.show_view('Detail/DeviceChain')
 
     # UPDATE
-    def update(self):
+    def update(self) -> None:
 
         if self.is_enabled():
             if self._number_of_parameter_banks() <= self._bank_index:
@@ -304,48 +313,50 @@ class DeviceControllerComponent(DeviceComponent):
             self._force = False
 
     # LOCK button
-    def update_lock_buttons(self):
+    def update_lock_buttons(self) -> None:
         # lock button
         if self.is_enabled():
             for index in range(len(self._locked_devices)):
-                if self._lock_buttons[index] is not None:
+                lock_button = self._lock_buttons[index]
+                if lock_button is not None:
                     if self._locked_devices[index] is not None:
-                        self._lock_buttons[index].set_on_off_values(
+                        lock_button.set_on_off_values(
                             "Device.Lock.Locked", "Device.Lock.Set")
                     else:
-                        self._lock_buttons[index].set_on_off_values(
+                        lock_button.set_on_off_values(
                             "Device.Lock.Empty", "Device.Lock.Empty")  # LED_OFF
                     if self._locked_device_index == index:
-                        self._lock_buttons[index].turn_on()
+                        lock_button.turn_on()
                     else:
-                        self._lock_buttons[index].turn_off()
+                        lock_button.turn_off()
 
-    def set_lock_button1(self, button):
+    def set_lock_button1(self, button: ButtonElement | None) -> None:
         self.set_lock_button(button, 1)
 
-    def set_lock_button2(self, button):
+    def set_lock_button2(self, button: ButtonElement | None) -> None:
         self.set_lock_button(button, 2)
 
-    def set_lock_button3(self, button):
+    def set_lock_button3(self, button: ButtonElement | None) -> None:
         self.set_lock_button(button, 3)
 
-    def set_lock_button4(self, button):
+    def set_lock_button4(self, button: ButtonElement | None) -> None:
         self.set_lock_button(button, 4)
 
-    def set_lock_button(self, button, index):
+    def set_lock_button(self, button: ButtonElement | None, index: int) -> None:  # type: ignore[override]  # redefines the 1-arg base signature; set_lock_button1..4 wrap it
         if len(self._lock_buttons) >= index:
-            if self._lock_buttons[index - 1] is not None:
-                self._lock_buttons[index - 1].remove_value_listener(
+            prev_button = self._lock_buttons[index - 1]
+            if prev_button is not None:
+                prev_button.remove_value_listener(
                     self._lock_value)
             self._lock_buttons[index - 1] = button
-            if self._lock_buttons[index - 1] is not None:
-                assert isinstance(self._lock_buttons[index - 1], ButtonElement)
-                self._lock_buttons[index - 1].add_value_listener(
+            if button is not None:
+                assert isinstance(button, ButtonElement)
+                button.add_value_listener(
                     self._lock_value, identify_sender=True)
 
     # self.update_lock_buttons()
 
-    def _lock_value(self, value, sender):
+    def _lock_value(self, value: int, sender: ButtonElement) -> None:
         if self.is_enabled():
             index = 0
             for i in range(len(self._lock_buttons)):
@@ -385,11 +396,12 @@ class DeviceControllerComponent(DeviceComponent):
                     else:  # Lock was used
                         # remove saved device
                         if self._locked_devices[index] is not None:
+                            locked_device = self._locked_devices[index]
+                            assert locked_device is not None
                             self._control_surface.show_message(
                                 "REMOVING '" + self.get_device_track_name(
-                                    self._locked_devices[index]) + " - " + str(
-                                    self._locked_devices[
-                                        index].name) + "' FROM LOCK: " + str(
+                                    locked_device) + " - " + str(
+                                    locked_device.name) + "' FROM LOCK: " + str(
                                     index + 1))
                             self._locked_devices[index] = None
                             self._locked_device_index = None
@@ -397,25 +409,24 @@ class DeviceControllerComponent(DeviceComponent):
                     # use selected device
                     if self._locked_device_index == index:
                         if self._locked_devices[index] is not None:
-                            if self._locked_devices[index] is not None:
-                                self._control_surface.show_message(
-                                    "UNLOCKED FROM '" + self.get_device_track_name(
-                                        self._locked_devices[
-                                            index]) + " - " + str(
-                                        self._locked_devices[
-                                            index].name) + "' (" + str(
-                                        index + 1) + ")")
+                            locked_device = self._locked_devices[index]
+                            assert locked_device is not None
+                            self._control_surface.show_message(
+                                "UNLOCKED FROM '" + self.get_device_track_name(
+                                    locked_device) + " - " + str(
+                                    locked_device.name) + "' (" + str(
+                                    index + 1) + ")")
                         self._locked_device_index = None
                     elif self._locked_devices[index] is not None:
                         self._locked_device_index = index
-                        self.set_device(self._locked_devices[index])
-                        if self._locked_devices[index] is not None:
-                            self._control_surface.show_message(
-                                "LOCKED TO '" + self.get_device_track_name(
-                                    self._locked_devices[index]) + " - " + str(
-                                    self._locked_devices[
-                                        index].name) + " (" + str(
-                                    index + 1) + ")")
+                        locked_device = self._locked_devices[index]
+                        assert locked_device is not None
+                        self.set_device(locked_device)
+                        self._control_surface.show_message(
+                            "LOCKED TO '" + self.get_device_track_name(
+                                locked_device) + " - " + str(
+                                locked_device.name) + " (" + str(
+                                index + 1) + ")")
                         self.update()
             self.update_track_buttons()
             self.update_device_buttons()
@@ -424,14 +435,16 @@ class DeviceControllerComponent(DeviceComponent):
                 self.on_selected_track_changed()
             self.update_lock_buttons()
 
-    def get_device_track_name(self, device):
+    def get_device_track_name(self, device: Live.Device.Device | Live.Chain.Chain | Live.Track.Track | None) -> str:
+        if device is None:
+            return ""
         if str(type(device)) == "<class 'Track.Track'>":
             return str(device.name)
         else:
             return self.get_device_track_name(device.canonical_parent)
 
     # Precision button
-    def update_mode_toggle_button(self):
+    def update_mode_toggle_button(self) -> None:
         if self._mode_toggle_button is not None and self.is_enabled():
             if self._mode_toggle_button is not None:
                 if self._device is not None:
@@ -447,7 +460,7 @@ class DeviceControllerComponent(DeviceComponent):
                         "DefaultButton.Disabled", "DefaultButton.Disabled")
                     self._mode_toggle_button.turn_off()
 
-    def _mode_toggle_value(self, value, sender):
+    def _mode_toggle_value(self, value: int, sender: ButtonElement) -> None:
         assert (self._mode_toggle_button is not None)
         assert (value in range(128))
 
@@ -471,7 +484,7 @@ class DeviceControllerComponent(DeviceComponent):
                     for slider in self._sliders:
                         slider.set_precision_mode(self._precision_mode)
 
-    def set_mode_toggle_button(self, button):
+    def set_mode_toggle_button(self, button: ButtonElement | None) -> None:
         assert (isinstance(button, (ButtonElement, type(None))))
         if self._mode_toggle_button != button:
             if self._mode_toggle_button is not None:
@@ -485,7 +498,7 @@ class DeviceControllerComponent(DeviceComponent):
                 self.update()
 
     # ON OFF button
-    def update_on_off_button(self):
+    def update_on_off_button(self) -> None:
         # on/off button
         if self._on_off_button is not None and self.is_enabled():
             if self._on_off_button is not None:
@@ -502,12 +515,12 @@ class DeviceControllerComponent(DeviceComponent):
                         "DefaultButton.Disabled", "DefaultButton.Disabled")
                     self._on_off_button.turn_off()
 
-    def _on_off_value(self, value):
+    def _on_off_value(self, value: int) -> None:
         if self._on_off_button is not None and self.is_enabled():
             DeviceComponent._on_off_value(self, value)
             self.update_on_off_button()
 
-    def set_on_off_button(self, button):
+    def set_on_off_button(self, button: ButtonElement | None) -> None:
         assert (isinstance(button, (ButtonElement, type(None))))
         if self._on_off_button != button:
             if self._on_off_button is not None:
@@ -518,7 +531,7 @@ class DeviceControllerComponent(DeviceComponent):
                 self._on_off_button.add_value_listener(self._on_off_value)
 
     # TRACKS Buttons
-    def update_track_buttons(self):
+    def update_track_buttons(self) -> None:
         # tracks
         if self.is_enabled():
             if (self._prev_track_button is not None):
@@ -540,7 +553,7 @@ class DeviceControllerComponent(DeviceComponent):
                 else:
                     self._next_track_button.turn_off()
 
-    def set_next_track_button(self, button):
+    def set_next_track_button(self, button: ButtonElement | None) -> None:
         assert (isinstance(button, (ButtonElement, type(None))))
         if (self._next_track_button != button):
             if (self._next_track_button is not None):
@@ -552,7 +565,7 @@ class DeviceControllerComponent(DeviceComponent):
                 self._next_track_button.add_value_listener(
                     self._next_track_value, identify_sender=True)
 
-    def _next_track_value(self, value, sender):
+    def _next_track_value(self, value: int, sender: ButtonElement) -> None:
         assert (self._next_track_button is not None)
         assert (value in range(128))
         if self.is_enabled():
@@ -568,7 +581,7 @@ class DeviceControllerComponent(DeviceComponent):
                             self.update()
                             break
 
-    def set_prev_track_button(self, button):
+    def set_prev_track_button(self, button: ButtonElement | None) -> None:
         assert (isinstance(button, (ButtonElement, type(None))))
         if (self._prev_track_button != button):
             if (self._prev_track_button is not None):
@@ -582,7 +595,7 @@ class DeviceControllerComponent(DeviceComponent):
                 self._prev_track_button.add_value_listener(
                     self._prev_track_value, identify_sender=True)
 
-    def _prev_track_value(self, value, sender):
+    def _prev_track_value(self, value: int, sender: ButtonElement) -> None:
         assert (self._prev_track_button is not None)
         assert (value in range(128))
         if ((not sender.is_momentary()) or (value != 0)):
@@ -597,20 +610,20 @@ class DeviceControllerComponent(DeviceComponent):
                             break
 
     @property
-    def selected_track_idx(self):
+    def selected_track_idx(self) -> int | None:
         tracks = list(self.song().tracks)
         result = tracks.index(
-            self.song().view.selected_track) if self.song().view.selected_track in tracks else None
+            self.song().view.selected_track) if self.song().view.selected_track in tracks else None  # type: ignore[arg-type]
         return result
 
     # return self.tuple_idx(self.song().tracks, self.song().view.selected_track)
 
-    def selected_track(self):
+    def selected_track(self) -> Live.Track.Track | None:
         return self.song().view.selected_track
 
     # DEVICES
 
-    def update_device_buttons(self):
+    def update_device_buttons(self) -> None:
 
         if self.is_enabled():
             if self._prev_device_button is not None:
@@ -634,7 +647,7 @@ class DeviceControllerComponent(DeviceComponent):
                     self._next_device_button.turn_off()
 
     # DEVICE NAVIGATION LISTENERES
-    def set_next_device_button(self, button):
+    def set_next_device_button(self, button: ButtonElement | None) -> None:
         assert (isinstance(button, (ButtonElement, type(None))))
         if (self._next_device_button != button):
             if (self._next_device_button is not None):
@@ -646,7 +659,7 @@ class DeviceControllerComponent(DeviceComponent):
                 self._next_device_button.add_value_listener(
                     self._next_device_value, identify_sender=True)
 
-    def _next_device_value(self, value, sender):
+    def _next_device_value(self, value: int, sender: ButtonElement) -> None:
         assert (self._next_device_button is not None)
         assert (value in range(128))
         if self.is_enabled():
@@ -657,7 +670,7 @@ class DeviceControllerComponent(DeviceComponent):
                         self.song().view.select_device(device)
                         self.update()
 
-    def set_prev_device_button(self, button):
+    def set_prev_device_button(self, button: ButtonElement | None) -> None:
         assert (isinstance(button, (ButtonElement, type(None))))
         if (self._prev_device_button != button):
             if (self._prev_device_button is not None):
@@ -669,7 +682,7 @@ class DeviceControllerComponent(DeviceComponent):
                 self._prev_device_button.add_value_listener(
                     self._prev_device_value, identify_sender=True)
 
-    def _prev_device_value(self, value, sender):
+    def _prev_device_value(self, value: int, sender: ButtonElement) -> None:
         assert (self._prev_device_button is not None)
         assert (value in range(128))
         if self.is_enabled():
@@ -680,9 +693,12 @@ class DeviceControllerComponent(DeviceComponent):
                         self.song().view.select_device(device)
                         self.update()
                         
-    def _get_next_device(self, device):
+    def _get_next_device(self, device: Live.Device.Device | None) -> Live.Device.Device | None:
         if device is None:
-            return self.selected_track().devices[0] if len(self.selected_track().devices) > 0 else None
+            track = self.selected_track()
+            if track is None or len(track.devices) == 0:
+                return None
+            return track.devices[0]
         if isinstance(device, Live.Device.Device):
             if device.can_have_chains and len(device.chains) > 0:
                 return device.chains[0].devices[0]
@@ -694,20 +710,23 @@ class DeviceControllerComponent(DeviceComponent):
                     return self._get_next_device_from_parent(device)
         return None
         
-    def _get_previous_device(self, device):
+    def _get_previous_device(self, device: Live.Device.Device | None) -> Live.Device.Device | None:
         if device is None:
-            return self.selected_track().devices[-1] if len(self.selected_track().devices) > 0 else None
+            track = self.selected_track()
+            if track is None or len(track.devices) == 0:
+                return None
+            return track.devices[-1]
         if isinstance(device, Live.Device.Device):
             previous_sibling = self._get_previous_sibling_device(device)
             if previous_sibling:
                 return self._get_last_device_in_chain(previous_sibling)
             elif device.canonical_parent and isinstance(device.canonical_parent, Live.Chain.Chain):
-                return device.canonical_parent.canonical_parent
+                return device.canonical_parent.canonical_parent  # type: ignore[return-value]  # a chain's parent is a device in practice
             else:
                 return self._get_previous_device_from_parent(device)
         return None
 
-    def _get_next_sibling_device(self, device):
+    def _get_next_sibling_device(self, device: Live.Device.Device) -> Live.Device.Device | None:
         parent = device.canonical_parent
         if isinstance(parent, Live.Chain.Chain):
             devices = parent.devices
@@ -720,7 +739,7 @@ class DeviceControllerComponent(DeviceComponent):
                 return self._get_next_device(None)
         return None
         
-    def _get_previous_sibling_device(self, device):
+    def _get_previous_sibling_device(self, device: Live.Device.Device) -> Live.Device.Device | None:
         parent = device.canonical_parent
         if isinstance(parent, Live.Chain.Chain):
             devices = parent.devices
@@ -729,7 +748,7 @@ class DeviceControllerComponent(DeviceComponent):
                 return devices[index - 1]
         return None
         
-    def _get_last_device_in_chain(self, device):
+    def _get_last_device_in_chain(self, device: Live.Device.Device) -> Live.Device.Device | None:
         if isinstance(device, Live.Device.Device):
             if device.can_have_chains and len(device.chains) > 0:
                 return self._get_last_device_in_chain(device.chains[-1].devices[-1])
@@ -737,7 +756,7 @@ class DeviceControllerComponent(DeviceComponent):
                 return device
         return None
         
-    def _get_next_device_from_parent(self, device):
+    def _get_next_device_from_parent(self, device: Live.Device.Device) -> Live.Device.Device | None:
         parent = device.canonical_parent
         if isinstance(parent, Live.Chain.Chain):
             parent_device = parent.canonical_parent
@@ -753,10 +772,10 @@ class DeviceControllerComponent(DeviceComponent):
                 return devices[devices.index(device) + 1]
         return None
         
-    def _get_previous_device_from_parent(self, device):
+    def _get_previous_device_from_parent(self, device: Live.Device.Device) -> Live.Device.Device | None:
         parent = device.canonical_parent
         if isinstance(parent, Live.Chain.Chain):
-            return parent.canonical_parent
+            return parent.canonical_parent  # type: ignore[return-value]  # a chain's parent is a device in practice
         elif isinstance(parent, Live.Track.Track):
             devices = list(parent.devices)
             if device in devices and devices.index(device) > 0:
@@ -764,21 +783,24 @@ class DeviceControllerComponent(DeviceComponent):
         return None
 
     @property
-    def selected_device_idx(self):
-        devices = list(self.song().view.selected_track.devices)
+    def selected_device_idx(self) -> int | None:
+        selected_track = self.song().view.selected_track
+        if selected_track is None:
+            return None
+        devices = list(selected_track.devices)
         result = devices.index(
             self._device) if self._device in devices else None
         # return self.tuple_idx(self.song().view.selected_track.devices, self._device)
         return result
 
     # DEVICE BANK BUTTONS
-    def set_prev_bank_button(self, button):
+    def set_prev_bank_button(self, button: ButtonElement | None) -> None:
         self._prev_bank_button = button
         if self._prev_bank_button is not None and self._next_bank_button is not None or self._prev_bank_button is None and self._next_bank_button is None:
             self.set_bank_nav_buttons(self._prev_bank_button,
                                       self._next_bank_button)
 
-    def set_next_bank_button(self, button):
+    def set_next_bank_button(self, button: ButtonElement | None) -> None:
         self._next_bank_button = button
         if self._prev_bank_button is not None and self._next_bank_button is not None or self._prev_bank_button is None and self._next_bank_button is None:
             self.set_bank_nav_buttons(self._prev_bank_button,

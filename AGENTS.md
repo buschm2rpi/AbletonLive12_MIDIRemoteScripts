@@ -28,7 +28,7 @@ Compact instructions for OpenCode sessions. Only include guidance that would be 
 
 ## Operational gotchas
 - `copy_to.sh` is macOS-specific (copies to `~/Music/Ableton/User Library/Remote Scripts/`). Do not run as-is on Linux; adjust paths if needed.
-- Python 3.11+ only (Ableton Live 12 is the only supported host). Legacy py2-style patterns in older files (`from __future__ import with_statement`, `xrange`/`imap` polyfills) may be left in place when editing, but do not add them to new code — modern Python 3 syntax and type annotations are fine.
+- Python 3.11+ only (Ableton Live 12 is the only supported host). Modern Python 3 syntax, type annotations, and f-strings are the standard. Do not introduce legacy Python 2 patterns (py2/3 compat shims such as `import Queue as queue`, `xrange`/`imap` polyfills, or py2-era comments). Note: `from __future__ import annotations` in test fakes is a modern Python 3 feature and stays.
 - Changes must stay consistent with existing indentation, naming, and style in the target directory. Do not assume new tests are expected outside `Launchpad95_typed/`.
 
 ## Highest-value references

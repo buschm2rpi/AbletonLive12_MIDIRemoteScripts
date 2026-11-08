@@ -1,23 +1,24 @@
+import Live
 from _Framework.ControlSurfaceComponent import ControlSurfaceComponent
 from _Framework.ButtonMatrixElement import ButtonMatrixElement
 from .StepSequencerComponent import StepSequencerComponent, ButtonElement, \
 	QUANTIZATION_NAMES
 from .LoopSelectorComponent import LoopSelectorComponent
 from .NoteSelectorComponent import NoteSelectorComponent
-from .ScaleComponent import MUSICAL_MODES, KEY_NAMES
+from .ScaleComponent import ScaleComponent, MUSICAL_MODES, KEY_NAMES
 from .TrackControllerComponent import TrackControllerComponent
 from random import randrange
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 if TYPE_CHECKING:
 	from .contracts import ControlSurfaceFacade
 
-STEPSEQ_MODE_NOTES = 1
-STEPSEQ_MODE_NOTES_OCTAVES = 2
-STEPSEQ_MODE_NOTES_VELOCITIES = 3
-STEPSEQ_MODE_NOTES_LENGTHS = 4
+STEPSEQ_MODE_NOTES: int = 1
+STEPSEQ_MODE_NOTES_OCTAVES: int = 2
+STEPSEQ_MODE_NOTES_VELOCITIES: int = 3
+STEPSEQ_MODE_NOTES_LENGTHS: int = 4
 
-LONG_BUTTON_PRESS = 1.0
+LONG_BUTTON_PRESS: float = 1.0
 
 # TODO :
 # extend / clear region (possible via drum step seq for now)
@@ -28,82 +29,87 @@ LONG_BUTTON_PRESS = 1.0
 
 class MelodicNoteEditorComponent(ControlSurfaceComponent):
 
-	def __init__(self, step_sequencer, matrix, side_buttons, control_surface: "ControlSurfaceFacade"):
+	def __init__(self, step_sequencer: StepSequencerComponent, matrix: ButtonMatrixElement, side_buttons: tuple[ButtonElement, ...], control_surface: "ControlSurfaceFacade") -> None:
 		ControlSurfaceComponent.__init__(self)
-		self._control_surface = control_surface
+		self._control_surface: "ControlSurfaceFacade" = control_surface
 		self.set_enabled(False)
 
-		self._step_sequencer = step_sequencer
+		self._step_sequencer: StepSequencerComponent = step_sequencer
 
-		self._clip = None
-		self._playhead = None
+		self._clip: Live.Clip.Clip | None = None
+		self._playhead: float | None = None
 
-		self._matrix = matrix
-		self._side_buttons = side_buttons
+		self._matrix: ButtonMatrixElement | None = matrix
+		self._side_buttons: tuple[ButtonElement, ...] | None = side_buttons
 
 		# buttons
 		self._matrix = None
 
 		# matrix
 		self.set_matrix(matrix)
-		self._grid_buffer = [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], 
+		self._grid_buffer: list[list[int | str]] = [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], 
 		[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], 
 		[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]]
-		self._grid_back_buffer = [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], 
+		self._grid_back_buffer: list[list[int | str]] = [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], 
 		[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], 
 		[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]]
 
 		# clip
 		self._clip = None
-		self._note_cache: list = []
-		self._force_update = True
+		self._note_cache: list[tuple[int, ...]] | tuple[tuple[int, ...], ...] = []
+		self._force_update: bool = True
+		self._notes_pitches: list[int] = []
+		self._notes_velocities: list[int] = []
+		self._notes_octaves: list[int] = []
+		self._notes_lengths: list[int] = []
+		self._scale_selector: ScaleComponent | None = None
 		self._init_data()
 
-		self._velocity_map = [0, 30, 60, 80, 100, 115, 127]
-		self._length_map = [1, 2, 3, 4, 8, 16, 32]
+		self._velocity_map: list[int] = [0, 30, 60, 80, 100, 115, 127]
+		self._length_map: list[int] = [1, 2, 3, 4, 8, 16, 32]
 
 		# time
 		self._playhead = 0
-		self._page = 0
+		self._page: int = 0
 
 		# notes
-		self._key_indexes = [36, 37, 38, 39, 40, 41, 42, 43]
-		self._key_index_is_in_scale = [True, False, True, True, False, True, False, True]
-		self._key_index_is_root_note = [True, False, False, False, False, False, False, False]
-		self._is_monophonic = False
+		self._key_indexes: list[int] = [36, 37, 38, 39, 40, 41, 42, 43]
+		self._key_index_is_in_scale: list[bool] = [True, False, True, True, False, True, False, True]
+		self._key_index_is_root_note: list[bool] = [True, False, False, False, False, False, False, False]
+		self._is_monophonic: bool = False
 
 		# quantization
-		self._quantization = 16
+		self._quantization: float = 16
 
 		# MODE
-		self._mode = STEPSEQ_MODE_NOTES
+		self._mode: int = STEPSEQ_MODE_NOTES
 
 		# buttons
-		self._random_button = None
+		self._random_button: ButtonElement | None = None
 		self.set_random_button(self._side_buttons[3])
 
-		self._mode_notes_lengths_button = None
+		self._mode_notes_lengths_button: ButtonElement | None = None
 		self.set_mode_notes_lengths_button(self._side_buttons[4])
-		self._is_notes_lengths_shifted = False
-		self._last_notes_lengths_button_press = time.time()
+		self._is_notes_lengths_shifted: bool = False
+		self._last_notes_lengths_button_press: float = time.time()
 
-		self._mode_notes_octaves_button = None
+		self._mode_notes_octaves_button: ButtonElement | None = None
 		self.set_mode_notes_octaves_button(self._side_buttons[5])
-		self._is_octave_shifted = False
-		self._last_notes_octaves_button_press = time.time()
+		self._is_octave_shifted: bool = False
+		self._last_notes_octaves_button_press: float = time.time()
 
-		self._mode_notes_velocities_button = None
+		self._mode_notes_velocities_button: ButtonElement | None = None
 		self.set_mode_notes_velocities_button(self._side_buttons[6])
-		self._is_notes_velocity_shifted = False
-		self._last_notes_velocity_button_press = time.time()
+		self._is_notes_velocity_shifted: bool = False
+		self._last_notes_velocity_button_press: float = time.time()
 
-		self._mode_notes_pitches_button = None
+		self._mode_notes_pitches_button: ButtonElement | None = None
 		self.set_mode_notes_pitches_button(self._side_buttons[7])
-		self._is_notes_pitches_shifted = False
-		self._last_notes_pitches_button_press = time.time()
+		self._is_notes_pitches_shifted: bool = False
+		self._last_notes_pitches_button_press: float = time.time()
 
-		self._is_velocity_shifted = False
-		self._is_mute_shifted = False
+		self._is_velocity_shifted: bool = False
+		self._is_mute_shifted: bool = False
 
 	def disconnect(self):
 		self._step_sequencer = None
@@ -119,7 +125,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 		self._clip = None
 	
 	
-	def _remove_scale_listeners(self):
+	def _remove_scale_listeners(self) -> None:
 		try:
 			self.song().remove_root_note_listener(self.handle_root_note_changed)
 		except RuntimeError:
@@ -130,7 +136,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 			pass
 		
 	
-	def _register_scale_listeners(self):
+	def _register_scale_listeners(self) -> None:
 		try:
 			self.song().add_root_note_listener(self.handle_root_note_changed)
 		except RuntimeError:
@@ -140,58 +146,62 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 		except RuntimeError:
 			pass
 
-	def handle_root_note_changed(self):
+	def handle_root_note_changed(self) -> None:
+		# _scale_selector lives on the parent step sequencer at runtime;
+		# declared here so mypy sees it (absent -> AttributeError, as before).
+		assert self._scale_selector is not None
 		self._scale_selector.set_key(self.song().root_note, False, True)
 		self.update()
 
 
-	def handle_scale_name_changed(self):
+	def handle_scale_name_changed(self) -> None:
+		assert self._scale_selector is not None
 		self._scale_selector.set_modus(self._scale_selector._modus_names.index(self.song().scale_name), False, True)
 		self.update()
 		
 		
 
-	def set_enabled(self, enabled):
+	def set_enabled(self, enabled: bool) -> None:
 		ControlSurfaceComponent.set_enabled(self, enabled)
 		if not enabled:
 			self._remove_scale_listeners()
 		else:
 			self._register_scale_listeners()
 
-	def _init_data(self):
+	def _init_data(self) -> None:
 		pages = 128
 		self._notes_pitches = [0] * (7 * pages)
 		self._notes_velocities = [4] * pages
 		self._notes_octaves = [2] * pages
 		self._notes_lengths = [3] * pages
 
-	def set_mode(self, mode):
+	def set_mode(self, mode: int) -> None:
 		self._mode = mode
 		self._force_update = True
 		self.update()
 
-	def set_clip(self, clip):
+	def set_clip(self, clip: Live.Clip.Clip | None) -> None:
 		if self._clip != clip:
 			self._init_data()
 			self._clip = clip
 
-	def set_note_cache(self, note_cache):
+	def set_note_cache(self, note_cache: list[tuple[int, ...]] | tuple[tuple[int, ...], ...]) -> None:
 		if self._note_cache != note_cache:
 			self._note_cache = note_cache
 			self._parse_notes()
 
-	def set_playhead(self, playhead):
+	def set_playhead(self, playhead: float | None) -> None:
 		self._playhead = playhead
 		self._update_matrix()
 
-	def set_multinote(self, x=0, y=0):
+	def set_multinote(self, x: int = 0, y: int = 0) -> None:
 		pass
 
 	@property
-	def quantization(self):
+	def quantization(self) -> float:
 		return self._quantization
 
-	def set_quantization(self, quantization):
+	def set_quantization(self, quantization: float) -> None:
 		old_quantize = self._quantization
 		self._quantization = quantization
 		# update loop point
@@ -211,24 +221,24 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 		# update clip notes
 		self._update_clip_notes()
 
-	def set_diatonic(self, diatonic):
+	def set_diatonic(self, diatonic: bool) -> None:
 		self._diatonic = diatonic
 
-	def set_key_indexes(self, key_indexes):
+	def set_key_indexes(self, key_indexes: list[int]) -> None:
 		if self._key_indexes != key_indexes:
 			self._key_indexes = key_indexes
 			self._update_clip_notes()
 
-	def set_key_index_is_in_scale(self, key_index_is_in_scale):
+	def set_key_index_is_in_scale(self, key_index_is_in_scale: list[bool]) -> None:
 		self._key_index_is_in_scale = key_index_is_in_scale
 
-	def set_key_index_is_root_note(self, key_index_is_root_note):
+	def set_key_index_is_root_note(self, key_index_is_root_note: list[bool]) -> None:
 		self._key_index_is_root_note = key_index_is_root_note
 
-	def set_page(self, page):
+	def set_page(self, page: int) -> None:
 		self._page = page
 
-	def _parse_notes(self):
+	def _parse_notes(self) -> None:
 		# clear notes
 		for i in range(len(self._notes_pitches)):
 			self._notes_pitches[i] = 0
@@ -274,7 +284,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 							self._notes_pitches[i * 7 + j] = 1
 		self._update_matrix()
 
-	def _update_clip_notes(self):
+	def _update_clip_notes(self) -> None:
 		if self._clip is not None and self._step_sequencer.is_enabled():
 			note_cache = list()
 			for x in range(len(self._notes_velocities)):
@@ -290,7 +300,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 			self._clip.replace_selected_notes(tuple(note_cache)) # Todo : deprecated
 			#self._control_surface.schedule_message(1, self._sch_update, ([self._clip,tuple(note_cache)]))
 
-	def _sch_update(self, data):
+	def _sch_update(self, data: list[Any]) -> None:
 			clip = data[0]
 			note_cache = data[1]
 			clip.select_all_notes()
@@ -299,7 +309,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 			else:
 				clip.replace_selected_notes(note_cache)
 				
-	def update(self, force=False):
+	def update(self, force: bool = False) -> None:
 		if force:
 			self._force_update = True
 		if self.is_enabled():
@@ -310,15 +320,15 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 			self._update_random_button()
 			self._update_matrix()
 
-	def request_display_page(self):
+	def request_display_page(self) -> None:
 		pass
 
-	def set_height(self, height):
+	def set_height(self, height: int) -> None:
 		pass
 
 # MATRIX
 
-	def set_matrix(self, matrix):
+	def set_matrix(self, matrix: ButtonMatrixElement | None) -> None:
 		assert isinstance(matrix, (ButtonMatrixElement, type(None)))
 		self._grid_buffer = [
 			[0, 0, 0, 0, 0, 0, 0, 0], 
@@ -347,7 +357,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 			if self._matrix is not None:
 				self._matrix.add_value_listener(self._matrix_value)
 
-	def _update_matrix(self):  # step grid LEDs are updated here
+	def _update_matrix(self) -> None:  # step grid LEDs are updated here
 		if self.is_enabled() and self._matrix is not None:
 			# clear back buffer
 			for x in range(8):
@@ -445,7 +455,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 						
 			self._force_update = False
 
-	def _matrix_value(self, value, x, y, is_momentary):  # matrix buttons listener
+	def _matrix_value(self, value: int, x: int, y: int, is_momentary: bool) -> None:  # matrix buttons listener
 		if self.is_enabled() and self._matrix is not None:
 			if self._clip is None:
 				self._step_sequencer.create_clip()
@@ -520,7 +530,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 
 
 # RANDOM
-	def _update_random_button(self):
+	def _update_random_button(self) -> None:
 		if self.is_enabled():
 			if (self._random_button is not None):
 				if self._clip is not None:
@@ -529,7 +539,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 				else:
 					self._random_button.set_light("DefaultButton.Disabled")
 					
-	def set_random_button(self, button):
+	def set_random_button(self, button: ButtonElement | None) -> None:
 		assert (isinstance(button, (ButtonElement, type(None))))
 		if (self._random_button != button):
 			if (self._random_button is not None):
@@ -539,7 +549,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 				assert isinstance(button, ButtonElement)
 				self._random_button.add_value_listener(self._random_button_value, identify_sender=True)
 
-	def _random_button_value(self, value, sender):
+	def _random_button_value(self, value: int, sender: ButtonElement) -> None:
 		assert (self._random_button is not None)
 		assert (value in range(128))
 		if self.is_enabled() and self._clip is not None:
@@ -551,7 +561,8 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 			else:
 				self._random_button.turn_on()
 
-	def _randomise(self):
+	def _randomise(self) -> None:
+		assert self._clip is not None
 		start = int(self._clip.loop_start / self._quantization)
 		end = int(self._clip.loop_end / self._quantization)
 		if (self._page + 1) * 8 > end or self._page * 8 < start:
@@ -579,7 +590,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 
 
 # PITCHES
-	def _update_mode_notes_pitches_button(self):
+	def _update_mode_notes_pitches_button(self) -> None:
 		if self.is_enabled():
 			if (self._mode_notes_pitches_button is not None):
 				if self._clip is not None:
@@ -592,7 +603,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 					self._mode_notes_pitches_button.set_on_off_values("DefaultButton.Disabled", "DefaultButton.Disabled")
 					self._mode_notes_pitches_button.turn_off()
 
-	def set_mode_notes_pitches_button(self, button):
+	def set_mode_notes_pitches_button(self, button: ButtonElement | None) -> None:
 		assert (isinstance(button, (ButtonElement, type(None))))
 		if (self._mode_notes_pitches_button != button):
 			if (self._mode_notes_pitches_button is not None):
@@ -602,7 +613,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 				assert isinstance(button, ButtonElement)
 				self._mode_notes_pitches_button.add_value_listener(self._mode_button_notes_pitches_value, identify_sender=True)
 
-	def _mode_button_notes_pitches_value(self, value, sender):
+	def _mode_button_notes_pitches_value(self, value: int, sender: ButtonElement) -> None:
 		assert (self._mode_notes_pitches_button is not None)
 		assert (value in range(128))
 		if self.is_enabled() and self._clip is not None:
@@ -628,7 +639,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 				self._is_notes_pitches_shifted = True
 
 # OCTAVES
-	def _update_mode_notes_octaves_button(self):
+	def _update_mode_notes_octaves_button(self) -> None:
 		if self.is_enabled():
 			if (self._mode_notes_octaves_button is not None):
 				if self._clip is not None:
@@ -640,7 +651,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 				else:
 					self._mode_notes_octaves_button.set_light("DefaultButton.Disabled")
 
-	def set_mode_notes_octaves_button(self, button):
+	def set_mode_notes_octaves_button(self, button: ButtonElement | None) -> None:
 		assert (isinstance(button, (ButtonElement, type(None))))
 		if (self._mode_notes_octaves_button != button):
 			if (self._mode_notes_octaves_button is not None):
@@ -650,7 +661,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 				assert isinstance(button, ButtonElement)
 				self._mode_notes_octaves_button.add_value_listener(self._mode_button_notes_octaves_value, identify_sender=True)
 
-	def _mode_button_notes_octaves_value(self, value, sender):
+	def _mode_button_notes_octaves_value(self, value: int, sender: ButtonElement) -> None:
 		assert (self._mode_notes_octaves_button is not None)
 		assert (value in range(128))
 		if self.is_enabled() and self._clip is not None:
@@ -664,7 +675,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 				self._is_notes_octaves_shifted = True
 
 # VELOCITIES
-	def _update_mode_notes_velocities_button(self):
+	def _update_mode_notes_velocities_button(self) -> None:
 		if self.is_enabled():
 			if (self._mode_notes_velocities_button is not None):
 				if self._clip is not None:
@@ -676,7 +687,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 				else:
 					self._mode_notes_velocities_button.set_light("DefaultButton.Disabled")
 					
-	def set_mode_notes_velocities_button(self, button):
+	def set_mode_notes_velocities_button(self, button: ButtonElement | None) -> None:
 		assert (isinstance(button, (ButtonElement, type(None))))
 		if (self._mode_notes_velocities_button != button):
 			if (self._mode_notes_velocities_button is not None):
@@ -686,7 +697,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 				assert isinstance(button, ButtonElement)
 				self._mode_notes_velocities_button.add_value_listener(self._mode_button_notes_velocities_value, identify_sender=True)
 
-	def _mode_button_notes_velocities_value(self, value, sender):
+	def _mode_button_notes_velocities_value(self, value: int, sender: ButtonElement) -> None:
 		assert (self._mode_notes_velocities_button is not None)
 		assert (value in range(128))
 		if self.is_enabled() and self._clip is not None:
@@ -703,7 +714,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 			self._step_sequencer._is_mute_shifted = self._is_mute_shifted
 			
 # LENGTHS
-	def _update_mode_notes_lengths_button(self):
+	def _update_mode_notes_lengths_button(self) -> None:
 		if self.is_enabled():
 			if (self._mode_notes_lengths_button is not None):
 				if self._clip is not None:
@@ -716,7 +727,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 					self._mode_notes_lengths_button.set_light("DefaultButton.Disabled")
 			
 
-	def set_mode_notes_lengths_button(self, button):
+	def set_mode_notes_lengths_button(self, button: ButtonElement | None) -> None:
 		assert (isinstance(button, (ButtonElement, type(None))))
 		if (self._mode_notes_lengths_button != button):
 			if (self._mode_notes_lengths_button is not None):
@@ -726,7 +737,7 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 				assert isinstance(button, ButtonElement)
 				self._mode_notes_lengths_button.add_value_listener(self._mode_button_notes_lengths_value, identify_sender=True)
 
-	def _mode_button_notes_lengths_value(self, value, sender):
+	def _mode_button_notes_lengths_value(self, value: int, sender: ButtonElement) -> None:
 		assert (self._mode_notes_lengths_button is not None)
 		assert (value in range(128))
 		if self.is_enabled() and self._clip is not None:
@@ -742,34 +753,34 @@ class MelodicNoteEditorComponent(ControlSurfaceComponent):
 
 class StepSequencerComponent2(StepSequencerComponent):
 
-	def __init__(self, matrix, side_buttons, top_buttons, control_surface: "ControlSurfaceFacade"):
+	def __init__(self, matrix: ButtonMatrixElement, side_buttons: tuple[ButtonElement, ...], top_buttons: tuple[ButtonElement, ...], control_surface: "ControlSurfaceFacade") -> None:
 		super(StepSequencerComponent2, self).__init__(matrix, side_buttons, top_buttons, control_surface)
 		self._new_clip_pages = 1
 		self._name = "melodic step sequencer"
 		
 		
-	def _set_scale_selector(self):
+	def _set_scale_selector(self) -> None:
 		super(StepSequencerComponent2, self)._set_scale_selector()
 		self._scale_selector._mode = "diatonic"
-		self._scale_selector._drumrack = False
+		self._scale_selector._drumrack = False  # type: ignore[attr-defined]  # legacy typo attribute; real flag is _is_drumrack
 
-	def _set_track_controller(self):
+	def _set_track_controller(self) -> None:
 		self._track_controller = self.register_component(TrackControllerComponent(self._control_surface, implicit_arm = False))
 		self._track_controller.set_prev_scene_button(self._top_buttons[0])
 		self._track_controller.set_next_scene_button(self._top_buttons[1])
 		self._track_controller.set_prev_track_button(self._top_buttons[2])
 		self._track_controller.set_next_track_button(self._top_buttons[3])
 
-	def _set_note_editor(self):
-		self._note_editor = self.register_component(MelodicNoteEditorComponent(self, self._matrix, self._side_buttons, self._control_surface))
+	def _set_note_editor(self) -> None:
+		self._note_editor = self.register_component(MelodicNoteEditorComponent(self, self._matrix, self._side_buttons, self._control_surface))  # type: ignore[assignment]  # melodic editor is a sibling of NoteEditorComponent
 
-	def _set_mute_shift_function(self):
+	def _set_mute_shift_function(self) -> None:
 		self._is_mute_shifted = False
 			
-	def _set_note_selector(self):
+	def _set_note_selector(self) -> None:
 		self._note_selector = self.register_component(NoteSelectorComponent(self, [], self._control_surface))
 
-	def _set_loop_selector(self):
+	def _set_loop_selector(self) -> None:
 		self._loop_selector = self.register_component(LoopSelectorComponent(self, [
 			self._matrix.get_button(0, 7), self._matrix.get_button(1, 7), self._matrix.get_button(2, 7), self._matrix.get_button(3, 7),
 			self._matrix.get_button(4, 7), self._matrix.get_button(5, 7), self._matrix.get_button(6, 7), self._matrix.get_button(7, 7)
@@ -777,21 +788,22 @@ class StepSequencerComponent2(StepSequencerComponent):
 		self.set_left_button(self._top_buttons[2])
 		self.set_right_button(self._top_buttons[3])
 
-	def _update_buttons(self):
+	def _update_buttons(self) -> None:
 		self._update_quantization_button()
 		self._update_lock_button()
 		self._update_scale_selector_button()
 		self._update_left_button()
 		self._update_right_button()
 
-	def _update_drum_group_device(self):
+	def _update_drum_group_device(self) -> None:
 		# no drum rack mode for me. i am a melodic step seq.
 		self._drum_group_device = None
 
-	def _update_OSD(self):
+	def _update_OSD(self) -> None:
 		if self._osd is not None:
 			self._osd.set_mode('Melodic Step Sequencer')
 			if self._clip is not None:
+				note_editor = cast(MelodicNoteEditorComponent, self._note_editor)
 				self._osd.attributes[0] = MUSICAL_MODES[self._scale_selector._modus * 2]
 				self._osd.attribute_names[0] = "Scale"
 				self._osd.attributes[1] = KEY_NAMES[self._scale_selector._key % 12]
@@ -800,20 +812,20 @@ class StepSequencerComponent2(StepSequencerComponent):
 				self._osd.attribute_names[2] = "Octave"
 				self._osd.attributes[3] = QUANTIZATION_NAMES[self._quantization_index]
 				self._osd.attribute_names[3] = "Quantisation"
-				if self._note_editor._is_monophonic:
+				if note_editor._is_monophonic:
 					self._osd.attributes[4] = "Mono"
 				else:
 					self._osd.attributes[4] = "Poly"
 				self._osd.attribute_names[4] = "Polyphony"
 
 				self._osd.attribute_names[5] = "Page"
-				if self._note_editor._mode == STEPSEQ_MODE_NOTES:
+				if note_editor._mode == STEPSEQ_MODE_NOTES:
 					self._osd.attributes[5] = "Notes"
-				elif self._note_editor._mode == STEPSEQ_MODE_NOTES_OCTAVES:
+				elif note_editor._mode == STEPSEQ_MODE_NOTES_OCTAVES:
 					self._osd.attributes[5] = "Octave"
-				elif self._note_editor._mode == STEPSEQ_MODE_NOTES_VELOCITIES:
+				elif note_editor._mode == STEPSEQ_MODE_NOTES_VELOCITIES:
 					self._osd.attributes[5] = "Velocity"
-				elif self._note_editor._mode == STEPSEQ_MODE_NOTES_LENGTHS:
+				elif note_editor._mode == STEPSEQ_MODE_NOTES_LENGTHS:
 					self._osd.attributes[5] = "Length"
 
 				self._osd.attributes[6] = " "
@@ -857,10 +869,10 @@ class StepSequencerComponent2(StepSequencerComponent):
 				self._osd.info[1] = "no clip selected"
 			self._osd.update()
 
-	def _update_mode_button(self):
+	def _update_mode_button(self) -> None:
 		if self.is_enabled():
 			if (self._mode_button is not None):
 				self._mode_button.set_on_off_values("DefaultButton.Disaled")
 
-	def _mode_button_value(self, value, sender):
+	def _mode_button_value(self, value: int, sender: ButtonElement) -> None:
 		pass

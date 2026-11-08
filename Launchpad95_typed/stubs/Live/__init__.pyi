@@ -6,3 +6,4 @@ test fakes (``tests/fake_live.py``) and the read-only decompiled
 ``_Framework`` sources. See ``stubs/README.md`` for how the stubs are
 surfaced to mypy.
 """
+from Live import Base  # noqa: F401  # expose Live.Base for `import Live; Live.Base.x`

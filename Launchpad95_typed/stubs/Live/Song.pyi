@@ -75,7 +75,7 @@ class ClipSlot:
     scenes/tracks).
     """
 
-    canonical_parent: object
+    canonical_parent: Track
 
     @property
     def clip(self) -> Optional[Clip]:
@@ -136,7 +136,7 @@ class ClipSlot:
 
     def set_fire_button_state(self, state: bool) -> None: ...
 
-    def create_clip(self, length: int) -> Clip: ...
+    def create_clip(self, length: int | float) -> Clip: ...
 
     def delete_clip(self) -> None: ...
 
@@ -209,7 +209,7 @@ class SongView:
         ...
 
     @property
-    def highlighted_clip_slot(self) -> object:
+    def highlighted_clip_slot(self) -> Optional[ClipSlot]:
         ...
 
     @highlighted_clip_slot.setter

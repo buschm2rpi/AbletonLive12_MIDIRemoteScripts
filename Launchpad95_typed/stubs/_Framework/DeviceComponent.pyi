@@ -12,6 +12,9 @@ from Live.Device import Device
 class DeviceComponent(ControlSurfaceComponent, Subject):
     """Device parameter control: bank navigation, parameter mapping, locks."""
 
+    _bank_index: int
+    _on_off_button: Optional[ButtonElement]
+
     def __init__(self, device_bank_registry: Any = None,
                  device_selection_follows_track_selection: bool = False,
                  *a: Any, **k: Any) -> None:
@@ -67,4 +70,13 @@ class DeviceComponent(ControlSurfaceComponent, Subject):
         ...
 
     def update(self) -> None:
+        ...
+
+    def _number_of_parameter_banks(self) -> int:
+        ...
+
+    def _on_off_parameter(self) -> Any:
+        ...
+
+    def _on_off_value(self, value: int) -> None:
         ...

@@ -1,7 +1,7 @@
 """Type stub for ``Live.Track`` (type-checking only)."""
 from __future__ import annotations
 
-from typing import Callable, List
+from typing import Any,  Callable, List
 
 from Live.Device import Device, Parameter
 from Live.Song import ClipSlot
@@ -50,7 +50,7 @@ class MixerDevice:
 class Track:
     """A Live track (audio/MIDI/return)."""
 
-    canonical_parent: object
+    canonical_parent: Any
 
     @property
     def name(self) -> str:
@@ -179,7 +179,7 @@ class Track:
     def stop_all_clips(self, force: bool = False) -> None:
         ...
 
-    def duplicate_clip_slot(self, index: int) -> None:
+    def duplicate_clip_slot(self, index: int) -> int:
         ...
 
     # -- subject listeners -------------------------------------------------

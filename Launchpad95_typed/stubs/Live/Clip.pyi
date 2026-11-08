@@ -1,7 +1,7 @@
 """Type stub for ``Live.Clip`` (type-checking only)."""
 from __future__ import annotations
 
-from typing import Callable, List, Optional
+from typing import Any, Callable, List, Optional, Sequence
 
 
 class Clip:
@@ -113,10 +113,13 @@ class Clip:
     def select_all_notes(self) -> None:
         ...
 
+    def deselect_all_notes(self) -> None:
+        ...
+
     def get_selected_notes(self) -> List[tuple]:
         ...
 
-    def replace_selected_notes(self, notes: List[tuple]) -> None:
+    def replace_selected_notes(self, notes: Sequence[Sequence[Any]]) -> None:
         ...
 
     def fire(self) -> None:

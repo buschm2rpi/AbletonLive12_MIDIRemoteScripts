@@ -8,12 +8,13 @@ from __future__ import annotations
 from typing import Callable, List
 
 from Live.Device import Device
+from Live.Track import Track
 
 
 class Chain:
     """A Live chain (rack chain / drum pad)."""
 
-    canonical_parent: object
+    canonical_parent: Track | Device | Chain
 
     @property
     def name(self) -> str:
@@ -33,6 +34,10 @@ class Chain:
 
     @devices.setter
     def devices(self, value: List[Device]) -> None:
+        ...
+
+    @property
+    def chains(self) -> List["Chain"]:
         ...
 
     def add_devices_listener(self, callback: Callable[..., None]) -> None: ...

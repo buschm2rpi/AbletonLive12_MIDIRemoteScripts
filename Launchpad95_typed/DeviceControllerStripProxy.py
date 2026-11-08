@@ -2,16 +2,11 @@ import traceback
 import time
 from threading import Thread
 from functools import partial
-try:
-    import Queue as queue  # type: ignore[import-not-found]  # py2 name; falls through to `queue` on py3
-except ModuleNotFoundError:
-    import queue
+import queue
 
 from .DeviceControllerStripServer import DeviceControllerStripServer
 from .Log import log
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from .contracts import ControlSurfaceFacade
+from typing import Any
 
 non_returns = ["set_precision_mode", "set_stepless_mode", "shutdown",
                "update", "reset_if_no_parameter", "_button_value", "connect_to",
@@ -21,9 +16,10 @@ returning = ["set_enabled", "param_name", "param_value","__ne__"]
 
 
 class DeviceControllerStripProxy():
-    def __init__(self, buttons, control_surface: "ControlSurfaceFacade", column, parent=None):
-        self._request_queue = queue.Queue()
-        self._response_queue = queue.Queue()
+    def __init__(self, buttons: tuple, control_surface: Any, column: int, parent: object | None = None):
+        self._request_queue: queue.Queue[object] = queue.Queue()
+        self._response_queue: queue.Queue[object] = queue.Queue()
+        self._parent: object = parent
         self.failed = False
         self.column = column
         self.request_id = 0

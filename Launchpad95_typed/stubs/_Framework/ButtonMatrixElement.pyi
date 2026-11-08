@@ -45,5 +45,5 @@ class ButtonMatrixElement(CompoundElement):
     def __len__(self) -> int:
         ...
 
-    def iterbuttons(self) -> Iterator[ButtonElement]:
+    def iterbuttons(self) -> Iterator[Tuple[ButtonElement, Tuple[int, int]]]:
         ...

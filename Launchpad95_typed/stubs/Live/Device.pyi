@@ -6,7 +6,7 @@ module path — it only uses instances obtained from ``device.parameters`` /
 """
 from __future__ import annotations
 
-from typing import Callable, List, Optional
+from typing import Any,  Callable, List, Optional
 
 from Live.Chain import Chain
 
@@ -94,7 +94,7 @@ class DeviceView:
 class Device:
     """A Live device (synth, effect, rack, ...)."""
 
-    canonical_parent: object
+    canonical_parent: Any
     type: int  # DeviceType.*
 
     @property

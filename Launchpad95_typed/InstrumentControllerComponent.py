@@ -2,12 +2,14 @@ import Live
 from _Framework.CompoundComponent import CompoundComponent
 from _Framework.SubjectSlot import subject_slot
 from _Framework.ButtonElement import ButtonElement
+from _Framework.ButtonMatrixElement import ButtonMatrixElement
 from _Framework.Util import find_if, clamp
-# Python 3: map() returns an iterator (replaces itertools.imap from Python 2)
 
 from .TrackControllerComponent import TrackControllerComponent
 from .ScaleComponent import ScaleComponent,CIRCLE_OF_FIFTHS,MUSICAL_MODES,KEY_NAMES
-from typing import TYPE_CHECKING
+from .NoteRepeatComponent import NoteRepeatComponent
+from .M4LInterface import M4LInterface
+from typing import TYPE_CHECKING, Sequence
 if TYPE_CHECKING:
 	from .contracts import ControlSurfaceFacade
 
@@ -17,29 +19,31 @@ SCALE_TYPE_MODE = 1
 
 class InstrumentControllerComponent(CompoundComponent):
 
-	def __init__(self, matrix, side_buttons, top_buttons, control_surface: "ControlSurfaceFacade", note_repeat):
+	def __init__(self, matrix: ButtonMatrixElement, side_buttons: tuple[ButtonElement, ...],
+			top_buttons: tuple[ButtonElement, ...], control_surface: "ControlSurfaceFacade",
+			note_repeat: NoteRepeatComponent) -> None:
 		super(InstrumentControllerComponent, self).__init__()
-		self._control_surface = control_surface
-		self._note_repeat = note_repeat
-		self._osd = None
-		self._matrix = None
-		self._side_buttons = side_buttons
-		self._remaining_buttons: list = []
-		self._track_controller = None
-		self.base_channel = 11
-		self._quick_scales = [0, 1, 2, 3, 4, 5, 6, 7, 10, 13, 14, 15, 17, 18, 24]
-		self._quick_scale_root = 0
-		self._normal_feedback_velocity = int(self._control_surface._skin['Note.Feedback'])
-		self._recordind_feedback_velocity = int(self._control_surface._skin['Note.FeedbackRecord'])
-		self._drum_group_device = None
-		self._octave_up_button = None
-		self._octave_down_button = None
-		self._scales_toggle_button = None
+		self._control_surface: "ControlSurfaceFacade" = control_surface
+		self._note_repeat: NoteRepeatComponent = note_repeat
+		self._osd: M4LInterface | None = None
+		self._matrix: ButtonMatrixElement | None = None
+		self._side_buttons: tuple[ButtonElement, ...] = side_buttons
+		self._remaining_buttons: list[ButtonElement] = []
+		self._track_controller: TrackControllerComponent | None = None
+		self.base_channel: int = 11
+		self._quick_scales: list[int] = [0, 1, 2, 3, 4, 5, 6, 7, 10, 13, 14, 15, 17, 18, 24]
+		self._quick_scale_root: int = 0
+		self._normal_feedback_velocity: int = int(self._control_surface._skin['Note.Feedback'])
+		self._recordind_feedback_velocity: int = int(self._control_surface._skin['Note.FeedbackRecord'])
+		self._drum_group_device: Live.Device.Device | None = None
+		self._octave_up_button: ButtonElement | None = None
+		self._octave_down_button: ButtonElement | None = None
+		self._scales_toggle_button: ButtonElement | None = None
 		self.set_scales_toggle_button(side_buttons[0])#Enable scale selecting mode
 		self.set_octave_up_button(side_buttons[2])#Shift octave up
 		self.set_octave_down_button(side_buttons[3])#Shift octave down
 		
-		self._osd_mode_backup = "Instrument"
+		self._osd_mode_backup: str = "Instrument"
 		
 		self._track_controller = self.register_component(TrackControllerComponent(control_surface = control_surface, implicit_arm = True))
 		self._track_controller.set_enabled(False)
@@ -57,7 +61,7 @@ class InstrumentControllerComponent(CompoundComponent):
 		self._track_controller.set_solo_button(side_buttons[6])
 		self._track_controller.set_session_record_button(side_buttons[7])
 
-		self._scales = self.register_component(ScaleComponent(self._control_surface))
+		self._scales: ScaleComponent = self.register_component(ScaleComponent(self._control_surface))
 		#self._scales.set_enabled(False)
 		self._scales.set_matrix(matrix)
 		self._scales.set_osd(self._osd)
@@ -66,10 +70,10 @@ class InstrumentControllerComponent(CompoundComponent):
 
 		self._on_session_record_changed.subject = self.song()
 		self._on_swing_amount_changed_in_live.subject = self.song()
-		self._note_repeat_selector = False
+		self._note_repeat_selector: bool = False
 		self._note_repeat.set_enabled(False)
 	
-	def _remove_scale_listeners(self):
+	def _remove_scale_listeners(self) -> None:
 		try:
 			self.song().remove_root_note_listener(self.handle_root_note_changed)
 		except RuntimeError:
@@ -79,7 +83,7 @@ class InstrumentControllerComponent(CompoundComponent):
 		except RuntimeError:
 			pass
 	
-	def _register_scale_listeners(self):
+	def _register_scale_listeners(self) -> None:
 		try:
 			self.song().add_root_note_listener(self.handle_root_note_changed)
 		except RuntimeError:
@@ -89,18 +93,18 @@ class InstrumentControllerComponent(CompoundComponent):
 		except RuntimeError:
 			pass
 
-	def handle_root_note_changed(self):
+	def handle_root_note_changed(self) -> None:
 		self._scales.set_key(self.song().root_note, False, True)
 		self.update()
 
 
-	def handle_scale_name_changed(self):
+	def handle_scale_name_changed(self) -> None:
 		self._scales.set_modus(self._scales._modus_names.index(self.song().scale_name), False, True)
 		self.update()
 		
 		
 
-	def set_enabled(self, enabled):
+	def set_enabled(self, enabled: bool) -> None:
 		CompoundComponent.set_enabled(self, enabled)
 		if self._track_controller is not None:
 			self._track_controller.set_enabled(enabled)
@@ -113,7 +117,7 @@ class InstrumentControllerComponent(CompoundComponent):
 			self._note_repeat.set_enabled(False)
 			self._remove_scale_listeners()
 		else:
-			self._control_surface.set_controlled_track(self._track_controller.selected_track)
+			self._control_surface.set_controlled_track(self._track_controller.selected_track if self._track_controller is not None else None)
 
 		if self._track_controller is not None:
 			self._register_scale_listeners()
@@ -124,40 +128,40 @@ class InstrumentControllerComponent(CompoundComponent):
 			self._update_OSD()
 			self.on_selected_track_changed()
 					
-	def _set_feedback_velocity(self):
+	def _set_feedback_velocity(self) -> None:
 		if self.song().session_record:
 			self._control_surface.host_api.set_feedback_velocity(self._recordind_feedback_velocity)
 		else:
 			self._control_surface.host_api.set_feedback_velocity(self._normal_feedback_velocity)
 
 	@subject_slot('session_record')
-	def _on_session_record_changed(self):
+	def _on_session_record_changed(self) -> None:
 		self._set_feedback_velocity()
 
 	@subject_slot('swing_amount')
-	def _on_swing_amount_changed_in_live(self):
+	def _on_swing_amount_changed_in_live(self) -> None:
 		self.update()
 
-	def _change_swing_amount_value(self, value):
+	def _change_swing_amount_value(self, value: int) -> None:
 		self._set_swing_amount_value(clamp(self.song().swing_amount + value*0.025, 0.0, 0.99))
 
 		
-	def _set_swing_amount_value(self, value):
+	def _set_swing_amount_value(self, value: float) -> None:
 		self.song().swing_amount = value
 		self._control_surface.show_message("REPEATER Swing amount: " + str(int(self._swing_amount()*100)) + "%")
 				
-	def _swing_amount(self):
+	def _swing_amount(self) -> float:
 		return self.song().swing_amount
 	
-	def _toggle_note_repeat_selector(self):
+	def _toggle_note_repeat_selector(self) -> None:
 		self._note_repeat_selector = not self._note_repeat_selector
 	
-	def _toggle_note_repeater(self):
+	def _toggle_note_repeater(self) -> None:
 		self._note_repeat.set_enabled(not self._note_repeat.is_enabled())
 		
 
 	# Refresh button and its listener
-	def set_scales_toggle_button(self, button):
+	def set_scales_toggle_button(self, button: ButtonElement | None) -> None:
 		assert isinstance(button, (ButtonElement, type(None)))
 		if (self._scales_toggle_button is not None):
 			self._scales_toggle_button.remove_value_listener(self._scales_toggle)
@@ -167,7 +171,7 @@ class InstrumentControllerComponent(CompoundComponent):
 			self._scales_toggle_button.turn_off()
 
 	# Refresh button and its listener
-	def set_octave_up_button(self, button=None):
+	def set_octave_up_button(self, button: ButtonElement | None = None) -> None:
 		assert isinstance(button, (ButtonElement, type(None)))
 		if (self._octave_up_button is not None):
 			self._octave_up_button.remove_value_listener(self._scroll_octave_up)
@@ -177,7 +181,7 @@ class InstrumentControllerComponent(CompoundComponent):
 			self._octave_up_button.turn_off()
 
 	# Refresh button and its listener
-	def set_octave_down_button(self, button=None):
+	def set_octave_down_button(self, button: ButtonElement | None = None) -> None:
 		assert isinstance(button, (ButtonElement, type(None)))
 		if (self._octave_down_button is not None):
 			self._octave_down_button.remove_value_listener(self._scroll_octave_down)
@@ -187,7 +191,10 @@ class InstrumentControllerComponent(CompoundComponent):
 			self._octave_down_button.turn_off()
 
 	#Enables scale selection mode
-	def _scales_toggle(self, value, sender):
+	def _scales_toggle(self, value: int, sender: ButtonElement) -> None:
+		assert self._matrix is not None
+		assert self._osd is not None
+		assert self._scales_toggle_button is not None
 		if self.is_enabled():
 			if (value != 0):
 				self._get_drumrack_device()
@@ -211,14 +218,14 @@ class InstrumentControllerComponent(CompoundComponent):
 
 
 	# Transposes key one octave up 
-	def _scroll_octave_up(self, value, sender):
+	def _scroll_octave_up(self, value: int, sender: ButtonElement) -> None:
 		if self.is_enabled():
 			if ((not sender.is_momentary()) or (value != 0)):
 				if self._can_scroll_octave_up():
 					self._scales._octave += 1
 					self.update()
 
-	def _can_scroll_octave_up(self):
+	def _can_scroll_octave_up(self) -> bool:
 		if(self._scales.is_drumrack):
 			if self._note_repeat_selector:
 				return self._scales._octave < 6
@@ -228,21 +235,21 @@ class InstrumentControllerComponent(CompoundComponent):
 			return self._scales._octave < 10
 
 	# Transposes key one octave down 
-	def _scroll_octave_down(self, value, sender):
+	def _scroll_octave_down(self, value: int, sender: ButtonElement) -> None:
 		if self.is_enabled():
 			if ((not sender.is_momentary()) or (value != 0)):
 				if self._can_scroll_octave_down():
 					self._scales._octave -= 1
 					self.update()
 
-	def _can_scroll_octave_down(self):
+	def _can_scroll_octave_down(self) -> bool:
 		if(self._scales.is_drumrack):
 			return self._scales._octave  > 0
 		else:
 			return self._scales._octave  > -2
 
 	#Handles scale setting and configuration
-	def _matrix_value_quickscale(self, value, x, y, is_momentary):  # matrix buttons listener for advanced mode
+	def _matrix_value_quickscale(self, value: int, x: int, y: int, is_momentary: bool) -> None:  # matrix buttons listener for advanced mode
 		if self.is_enabled():
 			if self._scales.is_drumrack:
 				if ((value != 0) or (not is_momentary)):
@@ -373,7 +380,7 @@ class InstrumentControllerComponent(CompoundComponent):
 								self._control_surface.show_message("REPEATER Step: " + str(self._note_repeat.freq_name()))
 						self.update()							
 
-	def setup_quick_scale_mode(self):
+	def setup_quick_scale_mode(self) -> None:
 		
 		self._quick_scale_root = ((self._quick_scale_root + 1) % 3)
 		
@@ -384,7 +391,7 @@ class InstrumentControllerComponent(CompoundComponent):
 		else:
 			self._control_surface.show_message("quick scale : REPEATER")
 
-	def update(self):
+	def update(self) -> None:
 		if self.is_enabled():
 			if self._track_controller is not None:
 				self._track_controller.set_enabled(True)
@@ -415,10 +422,11 @@ class InstrumentControllerComponent(CompoundComponent):
 			self._update_OSD()
 			#self._control_surface.log_message("Swing Amount: " + str(self._swing_amount()))			  
 
-	def set_osd(self, osd):
+	def set_osd(self, osd: M4LInterface | None) -> None:
 		self._osd = osd
 
-	def _update_OSD(self):
+	def _update_OSD(self) -> None:
+		assert self._track_controller is not None
 		if self._osd is not None:
 			if self._scales.is_quick_scale:
 				self._osd.mode = "Instrument (quick scale)"
@@ -450,7 +458,7 @@ class InstrumentControllerComponent(CompoundComponent):
 			self._osd.update()
 
 	# Refresh matrix and its listener
-	def set_matrix(self, matrix):
+	def set_matrix(self, matrix: ButtonMatrixElement | None) -> None:
 		self._matrix = matrix
 		if matrix:
 			matrix.reset()
@@ -463,7 +471,8 @@ class InstrumentControllerComponent(CompoundComponent):
 		self._update_matrix()
 
 	#Listener, setup drumrack scale mode and load the selected scale for Track/Cip (Disabled)
-	def on_selected_track_changed(self):
+	def on_selected_track_changed(self) -> None:
+		assert self._track_controller is not None
 		if self._track_controller._implicit_arm:
 			self._get_drumrack_device()
 			if self._drum_group_device is not None:
@@ -474,12 +483,14 @@ class InstrumentControllerComponent(CompoundComponent):
 			self._note_repeat.set_enabled(False)		
 			self.update()
 	
-	def on_selected_scene_changed(self):
+	def on_selected_scene_changed(self) -> None:
+		assert self._track_controller is not None
 		if self._track_controller._implicit_arm:		
 			self.update()
 
 	#Set the drum rack instrument to _drum_group_device variable, if it exists
-	def _get_drumrack_device(self):
+	def _get_drumrack_device(self) -> None:
+		assert self._track_controller is not None
 		if self._track_controller.selected_track is not None:
 			track = self._track_controller.selected_track
 			if(track.devices is not None and len(track.devices) > 0):
@@ -495,7 +506,7 @@ class InstrumentControllerComponent(CompoundComponent):
 			self._drum_group_device = None
 	
 	#Return the drum device inside the track devices or inside the track chain or None if device is not a Drum
-	def find_drum_group_device(self, track):
+	def find_drum_group_device(self, track: Live.Track.Track | Live.Chain.Chain) -> Live.Device.Device | None:
 		device = find_if(lambda d: d.type == Live.Device.DeviceType.instrument, track.devices)
 		if device:
 			if device.can_have_drum_pads:
@@ -504,8 +515,9 @@ class InstrumentControllerComponent(CompoundComponent):
 				return find_if(bool, map(self.find_drum_group_device, device.chains))
 		else:
 			return None
+		return None
 			
-	def _update_matrix(self):
+	def _update_matrix(self) -> None:
 		if not self.is_enabled() or not self._matrix or self._scales.is_enabled():
 			self._control_surface.release_controlled_track()
 			# self._control_surface.set_feedback_channels([])
@@ -796,7 +808,7 @@ class InstrumentControllerComponent(CompoundComponent):
 				button.set_enabled(True)
 				button.force_next_send()
 
-	def _getLightForNote(self, note):
+	def _getLightForNote(self, note: int) -> str:
 		return "DrumGroup.PadFilled"
 		if (note<4):
 			return "DrumGroup.PadFilled1"
@@ -817,7 +829,7 @@ class InstrumentControllerComponent(CompoundComponent):
 		else: 
 			return "DrumGroup.PadFilled4"	
 
-	def tuple_idx(self, target_tuple, obj):
+	def tuple_idx(self, target_tuple: Sequence[int], obj: int) -> int | bool:
 		for i in range(0, len(target_tuple)):
 			if (target_tuple[i] == obj):
 				return i
