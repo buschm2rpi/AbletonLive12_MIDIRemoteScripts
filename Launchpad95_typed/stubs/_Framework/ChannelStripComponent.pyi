@@ -12,6 +12,17 @@ from Live.Track import Track
 class ChannelStripComponent(ControlSurfaceComponent):
     """One channel strip: volume/pan/sends, arm/solo/mute, selection."""
 
+    # Internal state, set in __init__/set_track; read directly by typed
+    # subclasses (e.g. DefChannelStripComponent).
+    _track: Optional[Track]
+    _send_controls: Optional[Sequence[Optional[ControlElement]]]
+    _pan_control: Optional[ControlElement]
+    _volume_control: Optional[ControlElement]
+    _mute_button: Optional[ButtonElement]
+    _solo_button: Optional[ButtonElement]
+    _arm_button: Optional[ButtonElement]
+    _allow_updates: bool
+
     def __init__(self) -> None:
         ...
 
@@ -24,7 +35,10 @@ class ChannelStripComponent(ControlSurfaceComponent):
     def reset_button_on_exchange(self, button: ButtonElement) -> None:
         ...
 
-    def set_default_buttons(self, select_button=None, mute_button=None, solo_button=None, arm_button=None, crossfade_toggle=None) -> None:
+    # Not defined on the framework base in this snapshot; declared here
+    # because the strips used in this script (DefChannelStripComponent)
+    # always provide it and callers go through the base type.
+    def set_default_buttons(self, volume=None, panning=None, send1=None, send2=None) -> None:
         ...
 
     def set_send_controls(self, controls: Optional[Sequence[Optional[ControlElement]]]) -> None:
